@@ -88,8 +88,7 @@ class ZqlExpressionVisitor extends ZQLBaseVisitor<AbstractExpression> {
 
     @Override
     public AbstractExpression visitExpressionJson(ZQLParser.ExpressionJsonContext ctx) {
-        final String payload = ctx.TEXT().getText().substring(1, ctx.TEXT().getText().length() - 1);
-        return new Expression(ExpressionType.JSON, payload);
+        return new Expression(ExpressionType.JSON, "");
     }
 
     @Override

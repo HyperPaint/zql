@@ -1,5 +1,6 @@
 package hyperpaint.zookeeper_exporter;
 
+import com.jayway.jsonpath.JsonPath;
 import hyperpaint.zql.statement.PreparedStatement;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,11 @@ public class ApplicationController {
     @GetMapping("/metrics")
     public String metrics() {
         final String query = "select path, max(data), min(data) from list('/my') where path like '.*node[0-9].*' group by path";
+        final String json = "{ \"value\":\"1234\" }";
+
+        if (true) {
+            return JsonPath.parse(json).read("$.value");
+        }
 
         try {
             final var preparedStatement = new PreparedStatement(curator, query);

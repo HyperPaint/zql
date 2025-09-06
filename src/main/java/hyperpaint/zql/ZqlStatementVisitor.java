@@ -17,12 +17,6 @@ class ZqlStatementVisitor extends ZQLBaseVisitor<Statement> {
     static final ZqlStatementVisitor INSTANCE = new ZqlStatementVisitor();
 
     @Override
-    public Statement visitSelect(ZQLParser.SelectContext ctx) {
-        final AbstractExpression expression = ZqlExpressionsVisitor.INSTANCE.visit(ctx.expressions());
-        return validate(new Statement(expression, null, null, null));
-    }
-
-    @Override
     public Statement visitSelectFrom(ZQLParser.SelectFromContext ctx) {
         final AbstractExpression expression = ZqlExpressionsVisitor.INSTANCE.visit(ctx.expressions());
         final AbstractZnode znodes = ZqlZnodesVisitor.INSTANCE.visit(ctx.znodes());

@@ -7,14 +7,6 @@ package hyperpaint.zql.antlr4;
 PATH: 'path';
 DATA: 'data';
 
-COUNT: 'count' | 'cnt';
-SUM: 'sum';
-AVG: 'avg';
-MIN: 'min';
-MAX: 'max';
-
-LIST: 'list' | 'ls';
-
 EQUALS: '=' | '==';
 NOT_EQUALS: '<>' | '!=';
 LIKE: 'like' | '=~';
@@ -29,11 +21,12 @@ zql
     ;
 
 statement
-    :   'select' expressions # Select
-    |   'select' expressions 'from' znodes # SelectFrom
+    :   'select' expressions 'from' znodes # SelectFrom
     |   'select' expressions 'from' znodes 'where' conditions # SelectFromWhere
     |   'select' expressions 'from' znodes 'where' conditions 'group' 'by' groups # SelectFromWhereGroupBy
+//    |   'select' expressions 'from' znodes 'where' conditions 'group' 'by' groups 'having' ... # SelectFromWhereGroupByHaving
     |   'select' expressions 'from' znodes 'group' 'by' groups # SelectFromGroupBy
+//    |   'select' expressions 'from' znodes 'group' 'by' groups 'having' ... # SelectFromGroupByHaving
     ;
 
 expressions
@@ -43,12 +36,12 @@ expressions
 
 expression
     :   expression 'as' TEXT # ExpressionAlias
-    |   COUNT '(' expression ')' # ExpressionCount
-    |   SUM '(' expression ')' # ExpressionSum
-    |   AVG '(' expression ')' # ExpressionAvg
-    |   MIN '(' expression ')' # ExpressionMin
-    |   MAX '(' expression ')' # ExpressionMax
-    |   'json' '(' TEXT ')' # ExpressionJson
+    |   'count' '(' expression ')' # ExpressionCount
+    |   'sum' '(' expression ')' # ExpressionSum
+    |   'avg' '(' expression ')' # ExpressionAvg
+    |   'min' '(' expression ')' # ExpressionMin
+    |   'max' '(' expression ')' # ExpressionMax
+    |   'json' '(' expression ',' expression ')' # ExpressionJson
     |   PATH # ExpressionPath
     |   DATA # ExpressionData
     |   TEXT # ExpressionText
@@ -57,7 +50,7 @@ expression
 
 znodes
     :   znodes ',' znodes # ZnodesCommaZnodes
-    |   LIST '(' znode ')' # ZnodesList
+    |   'list' '(' znode ')' # ZnodesList
     |   znode # ZnodesBase
     ;
 

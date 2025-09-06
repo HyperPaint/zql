@@ -36,14 +36,14 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
 
-    // ZQL
+    // ANTLR
     implementation "org.antlr:antlr4-runtime:${antlr_version}"
 
     // ZooKeeper
     implementation "org.apache.curator:curator-framework:${project.curator_version}"
 
-    // Fast util
-    implementation "it.unimi.dsi:fastutil:${project.fast_util_version}"
+    // Json Path
+    implementation "com.jayway.jsonpath:json-path:${json_path_version}"
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_jupiter_version}"
