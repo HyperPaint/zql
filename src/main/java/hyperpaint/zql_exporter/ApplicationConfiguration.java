@@ -1,4 +1,4 @@
-package hyperpaint.zookeeper_exporter;
+package hyperpaint.zql_exporter;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;

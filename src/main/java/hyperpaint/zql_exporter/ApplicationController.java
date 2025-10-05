@@ -1,4 +1,4 @@
-package hyperpaint.zookeeper_exporter;
+package hyperpaint.zql_exporter;
 
 import com.jayway.jsonpath.JsonPath;
 import hyperpaint.zql.statement.PreparedStatement;

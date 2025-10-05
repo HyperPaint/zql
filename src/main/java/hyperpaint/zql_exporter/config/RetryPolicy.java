@@ -1,4 +1,4 @@
-package hyperpaint.zookeeper_exporter.config;
+package hyperpaint.zql_exporter.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
