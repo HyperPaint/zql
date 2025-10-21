@@ -1,1 +1,4 @@
-rootProject.name = "${properties.name}"
+rootProject.name = "zql"
+
+include "zql-lang"
+include "zql-exporter"

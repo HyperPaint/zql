@@ -1,4 +1,4 @@
-package hyperpaint.zql_exporter;
+package zql_exporter;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

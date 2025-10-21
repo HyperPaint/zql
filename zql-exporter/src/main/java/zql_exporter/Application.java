@@ -1,4 +1,4 @@
-package hyperpaint.zql_exporter;
+package zql_exporter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

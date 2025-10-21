@@ -1,4 +1,4 @@
-package hyperpaint.zql_exporter.config;
+package zql_exporter.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
