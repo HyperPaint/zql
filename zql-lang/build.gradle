@@ -35,7 +35,7 @@ test {
 
 tasks.register("antlr", Exec) {
     workingDir project.projectDir
-    commandLine 'java', '-jar', 'antlr/antlr-4.13.2-complete.jar', '-listener', '-visitor', 'src/main/java/hyperpaint/zql/antlr4/ZQL.g4'
+    commandLine 'java', '-jar', 'antlr/antlr-4.13.2-complete.jar', '-no-listener', '-visitor', 'src/main/java/hyperpaint/zql/lang/antlr4/ZQL.g4'
 }
 
 tasks.classes.dependsOn("antlr")
