@@ -1,7 +1,7 @@
-package hyperpaint.zql.lang.statement;
+package hyperpaint.zql.sql;
 
-import hyperpaint.zql.lang.ZqlException;
-import hyperpaint.zql.lang.ZqlVisitor;
+import hyperpaint.zql.lang.ZQLException;
+import hyperpaint.zql.lang.ZQLVisitor;
 import hyperpaint.zql.lang.antlr4.ZQLLexer;
 import hyperpaint.zql.lang.antlr4.ZQLParser;
 import hyperpaint.zql.lang.condition.Condition;
@@ -10,6 +10,8 @@ import hyperpaint.zql.lang.condition.ConditionCompositeOfCondition;
 import hyperpaint.zql.lang.condition.ConditionWrapper;
 import hyperpaint.zql.expression.*;
 import hyperpaint.zql.lang.expression.*;
+import hyperpaint.zql.lang.expression.select.ExpressionAlias;
+import hyperpaint.zql.lang.statement.Statement;
 import hyperpaint.zql.lang.znode.Znode;
 import hyperpaint.zql.lang.znode.ZnodePath;
 import hyperpaint.zql.lang.znode.ZnodeCollection;
@@ -24,7 +26,7 @@ import org.apache.curator.framework.CuratorFramework;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class PreparedStatement {
+public class PreparedSelect {
     private @Setter CuratorFramework curator;
 
     private final String query;
@@ -34,7 +36,7 @@ public class PreparedStatement {
     private final List<Expression.Type> columnsAggregateFunctions = new ArrayList<>();
     private boolean isAllColumnsAggregateFunctions = false;
 
-    public PreparedStatement(@NonNull CuratorFramework curator, @NonNull String query) {
+    public PreparedSelect(@NonNull CuratorFramework curator, @NonNull String query) {
         this.curator = curator;
         this.query = query;
     }
@@ -44,7 +46,7 @@ public class PreparedStatement {
         private final @Getter List<List<String>> rows;
         private final @Getter Map<String, String> znodes;
 
-        private ResultSet(PreparedStatement preparedStatement) {
+        private ResultSet(PreparedSelect preparedStatement) {
             this.columns = preparedStatement.columns;
             this.rows = new ArrayList<>();
             this.znodes = new HashMap<>();
@@ -71,20 +73,20 @@ public class PreparedStatement {
         return resultSet;
     }
 
-    private void parse() throws ZqlException {
+    private void parse() throws ZQLException {
         try {
             final CharStream charStream = CharStreams.fromString(query);
             final ZQLLexer lexer = new ZQLLexer(charStream);
             final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
             final ZQLParser parser = new ZQLParser(tokenStream);
             final ParseTree parseTree = parser.zql();
-            statement = ZqlVisitor.INSTANCE.visit(parseTree);
+            statement = ZQLVisitor.INSTANCE.visit(parseTree);
         } catch (Exception e) {
-            throw new ZqlException("Query parsing error; query=" + query, e);
+            throw new ZQLException("Query parsing error; query=" + query, e);
         }
     }
 
-    private void analyze() throws ZqlException {
+    private void analyze() throws ZQLException {
         if (statement.getExpressions() == null) {
             return;
         }
@@ -92,14 +94,14 @@ public class PreparedStatement {
         try {
             analyzeColumns(statement.getExpressions());
         } catch (Exception e) {
-            throw new ZqlException("Analyze columns error; query=" + query, e);
+            throw new ZQLException("Analyze columns error; query=" + query, e);
         }
 
         try {
             analyzeAggregation(statement.getExpressions());
             isAllColumnsAggregateFunctions = columnsAggregateFunctions.stream().allMatch(type -> type == Expression.Type.COUNT || type == Expression.Type.SUM || type == Expression.Type.AVG || type == Expression.Type.MIN || type == Expression.Type.MAX);
         } catch (Exception e) {
-            throw new ZqlException("Analyze aggregation error; query=" + query, e);
+            throw new ZQLException("Analyze aggregation error; query=" + query, e);
         }
     }
 
@@ -110,7 +112,7 @@ public class PreparedStatement {
                 expressionComma.getCollection().forEach(this::analyzeColumns);
             }
             case ALIAS -> {
-                final ExpressionAlias expressionAlias = (ExpressionAlias) expression;
+                final ExpressionAlias selectExpressionAlias = (ExpressionAlias) expression;
                 columns.add(expressionAlias.getAlias());
             }
             case COUNT -> {
@@ -143,7 +145,7 @@ public class PreparedStatement {
             case DATA -> columns.add("data");
             case TEXT -> columns.add("text");
             case NUMBER -> columns.add("number");
-            default -> throw new ZqlException("Unhandled expression type; expression=" + expression);
+            default -> throw new ZQLException("Unhandled expression type; expression=" + expression);
         }
     }
 
@@ -154,7 +156,7 @@ public class PreparedStatement {
                 expressionComma.getCollection().forEach(this::analyzeAggregation);
             }
             case ALIAS -> {
-                final ExpressionAlias expressionAlias = (ExpressionAlias) expression;
+                final ExpressionAlias selectExpressionAlias = (ExpressionAlias) expression;
                 analyzeAggregation(expressionAlias.getWrappedExpression());
             }
             case COUNT -> columnsAggregateFunctions.add(Expression.Type.COUNT);
@@ -167,11 +169,11 @@ public class PreparedStatement {
             case DATA -> columnsAggregateFunctions.add(Expression.Type.DATA);
             case TEXT -> columnsAggregateFunctions.add(Expression.Type.TEXT);
             case NUMBER -> columnsAggregateFunctions.add(Expression.Type.NUMBER);
-            default -> throw new ZqlException("Unhandled expression type; expression=" + expression);
+            default -> throw new ZQLException("Unhandled expression type; expression=" + expression);
         }
     }
 
-    private void collectZnodes(ResultSet resultSet) throws ZqlException {
+    private void collectZnodes(ResultSet resultSet) throws ZQLException {
         if (statement.getZnodes() == null) {
             return;
         }
@@ -179,7 +181,7 @@ public class PreparedStatement {
         try {
             collectZnodes(statement.getZnodes(), resultSet);
         } catch (Exception e) {
-            throw new ZqlException("ZNodes collecting error; query=" + query, e);
+            throw new ZQLException("ZNodes collecting error; query=" + query, e);
         }
     }
 
@@ -206,11 +208,11 @@ public class PreparedStatement {
                 final byte[] bytes = curator.getData().forPath(path);
                 resultSet.znodes.put(path, bytes == null ? "" : new String(bytes, StandardCharsets.UTF_8));
             }
-            default -> throw new ZqlException("Unhandled znode type; znode=" + znode);
+            default -> throw new ZQLException("Unhandled znode type; znode=" + znode);
         }
     }
 
-    private void filterZnodes(ResultSet resultSet) throws ZqlException {
+    private void filterZnodes(ResultSet resultSet) throws ZQLException {
         if (statement.getConditions() == null) {
             return;
         }
@@ -218,7 +220,7 @@ public class PreparedStatement {
         try {
             resultSet.znodes.entrySet().removeIf(entry -> !filterZnodes(statement.getConditions(), entry.getKey(), entry.getValue()));
         } catch (Exception e) {
-            throw new ZqlException("ZNodes collecting error; query=" + query, e);
+            throw new ZQLException("ZNodes collecting error; query=" + query, e);
         }
     }
 
@@ -251,7 +253,7 @@ public class PreparedStatement {
                         return data.equals(right.getText());
                     }
                     // todo json and number
-                    default -> throw new ZqlException("Can't handle equals condition; condition=" + condition + ", left=" + left + ", right=" + right);
+                    default -> throw new ZQLException("Can't handle equals condition; condition=" + condition + ", left=" + left + ", right=" + right);
                 }
             }
             case NOT_EQUALS -> {
@@ -268,7 +270,7 @@ public class PreparedStatement {
                     case DATA -> {
                         return !data.equals(right.getText());
                     }
-                    default -> throw new ZqlException("Can't handle not equals condition; condition=" + condition + ", left=" + left + ", right=" + right);
+                    default -> throw new ZQLException("Can't handle not equals condition; condition=" + condition + ", left=" + left + ", right=" + right);
                 }
             }
             case LIKE -> {
@@ -285,7 +287,7 @@ public class PreparedStatement {
                     case DATA -> {
                         return data.matches(right.getText());
                     }
-                    default -> throw new ZqlException("Can't handle like condition; condition=" + condition + ", left=" + left + ", right=" + right);
+                    default -> throw new ZQLException("Can't handle like condition; condition=" + condition + ", left=" + left + ", right=" + right);
                 }
             }
             case NOT_LIKE -> {
@@ -302,10 +304,10 @@ public class PreparedStatement {
                     case DATA -> {
                         return !data.matches(right.getText());
                     }
-                    default -> throw new ZqlException("Can't handle not like condition; condition=" + condition + ", left=" + left + ", right=" + right);
+                    default -> throw new ZQLException("Can't handle not like condition; condition=" + condition + ", left=" + left + ", right=" + right);
                 }
             }
-            default -> throw new ZqlException("Unhandled condition type; condition=" + condition);
+            default -> throw new ZQLException("Unhandled condition type; condition=" + condition);
         }
     }
 
@@ -321,7 +323,7 @@ public class PreparedStatement {
                 resultSet.rows.add(row);
             });
         } catch (Exception e) {
-            throw new ZqlException("Rows collecting error; query=" + query, e);
+            throw new ZQLException("Rows collecting error; query=" + query, e);
         }
     }
 
@@ -332,7 +334,7 @@ public class PreparedStatement {
                 expressionComma.getCollection().forEach(e -> collectRows(e, row, path, data));
             }
             case ALIAS -> {
-                final ExpressionAlias expressionAlias = (ExpressionAlias) expression;
+                final ExpressionAlias selectExpressionAlias = (ExpressionAlias) expression;
                 collectRows(expressionAlias.getWrappedExpression(), row, path, data);
             }
             case COUNT, SUM, AVG, MIN, MAX -> {
@@ -349,7 +351,7 @@ public class PreparedStatement {
                 final ExpressionString expressionString = (ExpressionString) expression;
                 row.add(expressionString.getText());
             }
-            default -> throw new ZqlException("Unhandled expression type; expression=" + expression);
+            default -> throw new ZQLException("Unhandled expression type; expression=" + expression);
         }
     }
 
@@ -373,7 +375,7 @@ public class PreparedStatement {
                         case JSON, PATH, DATA, TEXT, NUMBER -> {
                             stringBuilder.append(row.get(i));
                         }
-                        default -> throw new ZqlException("Unhandled expression type; type=" + type);
+                        default -> throw new ZQLException("Unhandled expression type; type=" + type);
                     }
                 }
 
@@ -442,7 +444,7 @@ public class PreparedStatement {
                             case JSON, PATH, DATA, TEXT, NUMBER -> {
                                 // ...
                             }
-                            default -> throw new ZqlException("Unhandled expression type; type=" + type);
+                            default -> throw new ZQLException("Unhandled expression type; type=" + type);
                         }
                     }
                 }
@@ -451,7 +453,7 @@ public class PreparedStatement {
                 return result;
             });
         } catch (Exception e) {
-            throw new ZqlException("Rows grouping error; query=" + query, e);
+            throw new ZQLException("Rows grouping error; query=" + query, e);
         }
     }
 }

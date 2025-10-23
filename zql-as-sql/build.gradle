@@ -1,7 +1,5 @@
 plugins {
     id "java"
-    id "org.springframework.boot" version "3.5.3"
-    id "io.spring.dependency-management" version "1.1.7"
 }
 
 group = "hyperpaint"
@@ -14,26 +12,15 @@ repositories {
 dependencies {
     implementation project(":zql-lang")
 
-    // Spring
-    implementation "org.springframework.boot:spring-boot-starter:${spring_version}"
-    implementation "org.springframework.boot:spring-boot-starter-web:${spring_version}"
-    testImplementation "org.springframework.boot:spring-boot-starter-test:${spring_version}"
-
     // Lombok
     compileOnly "org.projectlombok:lombok:${project.lombok_version}"
     testCompileOnly "org.projectlombok:lombok:${project.lombok_version}"
     annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
 
-    // ZooKeeper
-    implementation "org.apache.curator:curator-framework:${project.curator_version}"
-
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_jupiter_version}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:${project.junit_platform_version}"
-
-    // Test containers
-    testImplementation "org.testcontainers:testcontainers:${project.testcontainers_version}"
 }
 
 java {

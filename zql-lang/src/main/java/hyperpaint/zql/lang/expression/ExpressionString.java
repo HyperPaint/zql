@@ -5,7 +5,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ExpressionString extends Expression {
     private final String text;
 

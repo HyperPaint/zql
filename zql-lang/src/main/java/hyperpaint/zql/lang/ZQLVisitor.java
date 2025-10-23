@@ -7,8 +7,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ZqlVisitor extends ZQLBaseVisitor<Statement> {
-    public static final ZqlVisitor INSTANCE = new ZqlVisitor();
+class ZQLVisitor extends ZQLBaseVisitor<Statement> {
+    static final ZQLVisitor INSTANCE = new ZQLVisitor();
 
     @Override
     public Statement visitZql(ZQLParser.ZqlContext ctx) {

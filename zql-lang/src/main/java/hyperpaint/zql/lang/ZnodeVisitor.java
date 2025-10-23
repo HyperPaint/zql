@@ -38,13 +38,8 @@ class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
             final List<Znode> list = new ArrayList<>();
             list.add(left);
             list.add(right);
-            return new ZnodeCollection(Znode.Type.COMMA, list);
+            return new ZnodeCollection(list);
         }
-    }
-
-    @Override
-    public Znode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
-        return visit(ctx.znode());
     }
 
     @Override
@@ -53,7 +48,12 @@ class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
     }
 
     @Override
+    public Znode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
+        return visit(ctx.znode());
+    }
+
+    @Override
     public Znode visitZnode(ZQLParser.ZnodeContext ctx) {
-        return new ZnodePath(Znode.Type.PATH, ctx.getText());
+        return new ZnodePath(ctx.getText());
     }
 }

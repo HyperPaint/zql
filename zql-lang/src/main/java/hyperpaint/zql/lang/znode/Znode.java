@@ -8,7 +8,9 @@ import lombok.*;
 public abstract class Znode {
     public enum Type {
         COMMA,
+
         LIST,
+
         PATH
     }
 

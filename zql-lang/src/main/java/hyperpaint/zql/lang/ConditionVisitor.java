@@ -42,32 +42,32 @@ class ConditionVisitor extends ZQLBaseVisitor<Condition> {
 
     @Override
     public Condition visitConditionEquals(ZQLParser.ConditionEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.expression(1));
+        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(1));
 
         return new ConditionCompositeOfExpression(Condition.Type.EQUALS, left, right);
     }
 
     @Override
     public Condition visitConditionNotEquals(ZQLParser.ConditionNotEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.expression(1));
+        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(1));
 
         return new ConditionCompositeOfExpression(Condition.Type.NOT_EQUALS, left, right);
     }
 
     @Override
     public Condition visitConditionLike(ZQLParser.ConditionLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.expression(1));
+        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(1));
 
         return new ConditionCompositeOfExpression(Condition.Type.LIKE, left, right);
     }
 
     @Override
     public Condition visitConditionNotLike(ZQLParser.ConditionNotLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.expression(1));
+        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.condition_expression(1));
 
         return new ConditionCompositeOfExpression(Condition.Type.NOT_LIKE, left, right);
     }

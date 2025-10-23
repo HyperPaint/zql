@@ -7,8 +7,8 @@ import lombok.ToString;
 import java.util.Collection;
 
 @Getter
-@ToString
-public class ExpressionCollection extends Expression {
+@ToString(callSuper = true)
+public abstract class ExpressionCollection extends Expression {
     private final Collection<Expression> collection;
 
     public ExpressionCollection(@NonNull Type type, @NonNull Collection<Expression> collection) {

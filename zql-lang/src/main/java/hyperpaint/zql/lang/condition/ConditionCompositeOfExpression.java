@@ -6,7 +6,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ConditionCompositeOfExpression extends Condition {
     private final Expression left;
     private final Expression right;

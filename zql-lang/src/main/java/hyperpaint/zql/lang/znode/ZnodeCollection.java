@@ -7,12 +7,12 @@ import lombok.ToString;
 import java.util.Collection;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ZnodeCollection extends Znode {
     private final Collection<Znode> collection;
 
-    public ZnodeCollection(@NonNull Znode.Type type, @NonNull Collection<Znode> collection) {
-        super(type);
+    public ZnodeCollection(@NonNull Collection<Znode> collection) {
+        super(Type.COMMA);
 
         this.collection = collection;
     }

@@ -5,7 +5,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ExpressionWrapper2 extends Expression {
     private final Expression wrappedExpression1;
     private final Expression wrappedExpression2;

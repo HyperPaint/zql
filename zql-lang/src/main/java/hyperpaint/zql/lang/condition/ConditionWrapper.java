@@ -5,7 +5,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ConditionWrapper extends Condition {
     private final @NonNull Condition wrappedCondition;
 

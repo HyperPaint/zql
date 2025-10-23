@@ -19,6 +19,9 @@ dependencies {
     // ANTLR
     implementation "org.antlr:antlr4-runtime:${antlr_version}"
 
+    // Json Path
+    implementation "com.jayway.jsonpath:json-path:${json_path_version}"
+
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_jupiter_version}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:${project.junit_platform_version}"

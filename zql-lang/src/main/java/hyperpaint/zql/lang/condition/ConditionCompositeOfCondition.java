@@ -5,7 +5,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
-@ToString
+@ToString(callSuper = true)
 public class ConditionCompositeOfCondition extends Condition {
     private final Condition left;
     private final Condition right;

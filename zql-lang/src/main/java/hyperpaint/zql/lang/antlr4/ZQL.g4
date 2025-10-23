@@ -37,7 +37,7 @@ OR_WORD: 'or';
 LS_WORD: 'ls';
 
 TEXT: [']~[']*['] | ["]~["]*["];
-NUMBER: [1-9][0-9]*('.'[0-9]+)?;
+NUMBER: ('-')? ([0] | [1-9][0-9]*) ('.'[0-9]+)?;
 IDENTIFIER: [A-Za-z\\\-_.]+[A-Za-z0-9\\\-_.]*;
 
 zql
@@ -72,33 +72,69 @@ statement
     ;
 
 select
-    :   SELECT_WORD expressions (FROM_WORD znodes)? (WHERE_WORD conditions)? (GROUP_BY_WORD expressions)? (HAVING_WORD conditions)? (ORDER_BY_WORD expression)? (ASC_WORD | DESC_WORD)?
+    :   SELECT_WORD select_expressions (FROM_WORD znodes)? (WHERE_WORD conditions)? (GROUP_BY_WORD group_by_expressions)? (HAVING_WORD conditions)? (ORDER_BY_WORD order_by_expressions)?
     ;
 
-expressions
-    :   expressions ',' expressions # ExpressionsCommaExpressions
-    |   expression # ExpressionsBase
+select_expressions
+    :   select_expressions ',' select_expressions # SelectExpressionsCommaExpressions
+    |   select_expression # SelectExpressionsBase
     ;
 
-expression
-    :   expression AS_WORD TEXT # ExpressionAsText
-    |   expression AS_WORD identifier # ExpressionAsIdentifier
-    |   COUNT_WORD '(' expression ')' # ExpressionCount
-    |   SUM_WORD '(' expression ')' # ExpressionSum
-    |   AVG_WORD '(' expression ')' # ExpressionAvg
-    |   MIN_WORD '(' expression ')' # ExpressionMin
-    |   MAX_WORD '(' expression ')' # ExpressionMax
-    |   JSON_WORD '(' expression ',' expression ')' # ExpressionJsonPath
-    |   TEXT # ExpressionText
+select_expression
+    :   expression_alias # SelectExpressionAlias
+    |   expression_function # SelectExpressionFunction
+    |   expression_primitive # SelectExpressionPrimitive
+    ;
+
+condition_expression
+    :   expression_function # ConditionExpressionFunction
+    |   expression_primitive # ConditionExpressionPrimitive
+    ;
+
+group_by_expressions
+    :   group_by_expressions ',' group_by_expressions # GroupByExpressionsCommaGroupByExpressions
+    |   group_by_expression # GroupByExpressionsBase
+    ;
+
+group_by_expression
+    :   expression_function # GroupByExpressionFunction
+    |   expression_primitive # GroupByExpressionPrimitive
+    ;
+
+order_by_expressions
+    :   order_by_expressions ',' order_by_expressions # OrderByExpressionsCommaOrderByExpressions
+    |   order_by_expression (ASC_WORD | DESC_WORD)? # OrderByExpressionsBase
+    ;
+
+order_by_expression
+    :   expression_function # OrderByExpressionFunction
+    |   expression_primitive # OrderByExpressionPrimitive
+    ;
+
+expression_alias
+    :   (expression_function | expression_primitive) AS_WORD TEXT # ExpressionAsText
+    |   (expression_function | expression_primitive) AS_WORD identifier # ExpressionAsIdentifier
+    ;
+
+expression_function
+    :   COUNT_WORD '(' (expression_function | expression_primitive) ')' # ExpressionCount
+    |   SUM_WORD '(' (expression_function | expression_primitive) ')' # ExpressionSum
+    |   AVG_WORD '(' (expression_function | expression_primitive) ')' # ExpressionAvg
+    |   MIN_WORD '(' (expression_function | expression_primitive) ')' # ExpressionMin
+    |   MAX_WORD '(' (expression_function | expression_primitive) ')' # ExpressionMax
+    |   JSON_WORD '(' (expression_function | expression_primitive) ',' (expression_function | expression_primitive) ')' # ExpressionJsonPath
+    ;
+
+expression_primitive
+    :   TEXT # ExpressionText
     |   NUMBER # ExpressionNumber
     |   identifier # ExpressionIdentifier
     ;
 
 znodes
     :   znodes ',' znodes # ZnodesCommaZnodes
-    |   znode # ZnodesBase
-    |   'ls' znodes # ZnodesList
     |   'ls' '/' znodes # ZnodesList
+    |   znode # ZnodesBase
     ;
 
 znode
@@ -113,10 +149,10 @@ conditions
     ;
 
 condition
-    :   expression EQUALS expression # ConditionEquals
-    |   expression NOT_EQUALS expression # ConditionNotEquals
-    |   expression LIKE expression # ConditionLike
-    |   expression NOT_LIKE expression # ConditionNotLike
+    :   condition_expression EQUALS condition_expression # ConditionEquals
+    |   condition_expression NOT_EQUALS condition_expression # ConditionNotEquals
+    |   condition_expression LIKE condition_expression # ConditionLike
+    |   condition_expression NOT_LIKE condition_expression # ConditionNotLike
     ;
 
 LINE_COMMENT: '--' ~[\r\n]* -> skip;

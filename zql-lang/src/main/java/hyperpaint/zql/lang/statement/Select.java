@@ -1,38 +1,60 @@
 package hyperpaint.zql.lang.statement;
 
-import hyperpaint.zql.lang.condition.ConditionCompositeOfCondition;
-import hyperpaint.zql.lang.expression.ExpressionCollection;
-import hyperpaint.zql.lang.znode.ZnodeCollection;
+import hyperpaint.zql.lang.condition.Condition;
+import hyperpaint.zql.lang.expression.Expression;
+import hyperpaint.zql.lang.znode.Znode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 
 @Getter
 @ToString
 public class Select extends Statement {
-    private final ExpressionCollection selectExpressions;
-    private final ZnodeCollection fromZnodes;
-    private final ConditionCompositeOfCondition whereConditions;
-    private final ExpressionCollection groupByExpressions;
-    private final ConditionCompositeOfCondition havingConditions;
-    private final ExpressionCollection orderByExpressions;
+    private final Expression selectExpression;
+    private final Znode fromZnode;
+    private final Condition whereCondition;
+    private final Expression groupByExpression;
+    private final Condition havingCondition;
+    private final Expression orderByExpression;
 
     public Select(
-            @NonNull Statement.Type type,
-            ExpressionCollection selectExpressions,
-            ZnodeCollection fromZnodes,
-            ConditionCompositeOfCondition whereConditions,
-            ExpressionCollection groupByExpressions,
-            ConditionCompositeOfCondition havingConditions,
-            ExpressionCollection orderByExpressions
+            Expression selectExpression,
+            Znode fromZnode,
+            Condition whereCondition,
+            Expression groupByExpression,
+            Condition havingCondition,
+            Expression orderByExpression
     ) {
-        super(type);
+        super(Type.SELECT);
 
-        this.selectExpressions = selectExpressions;
-        this.fromZnodes = fromZnodes;
-        this.whereConditions = whereConditions;
-        this.groupByExpressions = groupByExpressions;
-        this.havingConditions = havingConditions;
-        this.orderByExpressions = orderByExpressions;
+        this.selectExpression = selectExpression;
+        this.fromZnode = fromZnode;
+        this.whereCondition = whereCondition;
+        this.groupByExpression = groupByExpression;
+        this.havingCondition = havingCondition;
+        this.orderByExpression = orderByExpression;
+    }
+
+    public boolean hasSelectExpression() {
+        return selectExpression != null;
+    }
+
+    public boolean hasFromZnode() {
+        return fromZnode != null;
+    }
+
+    public boolean hasWhereCondition() {
+        return whereCondition != null;
+    }
+
+    public boolean hasGroupByExpression() {
+        return groupByExpression != null;
+    }
+
+    public boolean hasHavingCondition() {
+        return havingCondition != null;
+    }
+
+    public boolean hasOrderByExpression() {
+        return orderByExpression != null;
     }
 }

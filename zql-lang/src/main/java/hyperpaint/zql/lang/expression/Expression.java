@@ -8,13 +8,17 @@ import lombok.*;
 public abstract class Expression {
     public enum Type {
         COMMA,
+
         ALIAS,
+        ORDER,
+
         COUNT,
         SUM,
         AVG,
         MIN,
         MAX,
         JSON_PATH,
+
         TEXT,
         NUMBER,
         IDENTIFIER

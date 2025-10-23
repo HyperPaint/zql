@@ -1,4 +1,5 @@
 rootProject.name = "zql"
 
 include "zql-lang"
+include "zql-as-sql"
 include "zql-exporter"

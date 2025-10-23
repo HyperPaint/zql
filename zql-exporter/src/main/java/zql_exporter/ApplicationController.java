@@ -1,7 +1,7 @@
 package zql_exporter;
 
 import com.jayway.jsonpath.JsonPath;
-import hyperpaint.zql.lang.statement.PreparedStatement;
+import hyperpaint.zql.sql.PreparedSelect;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
@@ -33,7 +33,7 @@ public class ApplicationController {
         }
 
         try {
-            final var preparedStatement = new PreparedStatement(curator, query);
+            final var preparedStatement = new PreparedSelect(curator, query);
             final var resultSet = preparedStatement.execute();
             return resultSetToTable(resultSet);
         } catch (Exception e) {
@@ -42,7 +42,7 @@ public class ApplicationController {
         }
     }
 
-    private static String resultSetToTable(PreparedStatement.ResultSet resultSet) {
+    private static String resultSetToTable(PreparedSelect.ResultSet resultSet) {
         final var stringBuilder = new StringBuilder();
 
         for (var col : resultSet.getColumns()) {
