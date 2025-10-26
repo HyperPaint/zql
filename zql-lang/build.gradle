@@ -11,20 +11,17 @@ repositories {
 
 dependencies {
     // Lombok
-    compileOnly "org.projectlombok:lombok:${project.lombok_version}"
-    testCompileOnly "org.projectlombok:lombok:${project.lombok_version}"
-    annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
-    testAnnotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
+    compileOnly "org.projectlombok:lombok:${lombok_version}"
+    testCompileOnly "org.projectlombok:lombok:${lombok_version}"
+    annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     // ANTLR
     implementation "org.antlr:antlr4-runtime:${antlr_version}"
 
-    // Json Path
-    implementation "com.jayway.jsonpath:json-path:${json_path_version}"
-
     // Test
-    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_jupiter_version}"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${project.junit_platform_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${junit_platform_version}"
 }
 
 java {

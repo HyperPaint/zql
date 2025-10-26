@@ -4,16 +4,16 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
-import java.util.Collection;
+import java.util.List;
 
 @Getter
 @ToString(callSuper = true)
 public abstract class ExpressionCollection extends Expression {
-    private final Collection<Expression> collection;
+    private final List<Expression> list;
 
-    public ExpressionCollection(@NonNull Type type, @NonNull Collection<Expression> collection) {
+    public ExpressionCollection(Type type, List<Expression> list) {
         super(type);
 
-        this.collection = collection;
+        this.list = list;
     }
 }

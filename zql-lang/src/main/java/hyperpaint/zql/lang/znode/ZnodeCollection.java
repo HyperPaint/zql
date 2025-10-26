@@ -4,16 +4,16 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
-import java.util.Collection;
+import java.util.List;
 
 @Getter
 @ToString(callSuper = true)
 public class ZnodeCollection extends Znode {
-    private final Collection<Znode> collection;
+    private final List<Znode> list;
 
-    public ZnodeCollection(@NonNull Collection<Znode> collection) {
+    public ZnodeCollection(@NonNull List<Znode> list) {
         super(Type.COMMA);
 
-        this.collection = collection;
+        this.list = list;
     }
 }

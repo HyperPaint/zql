@@ -18,9 +18,9 @@ class StatementVisitor extends ZQLBaseVisitor<Statement> {
     public Statement visitSelect(ZQLParser.SelectContext ctx) {
         final Expression selectExpressions =  ctx.SELECT_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.select_expressions()) : null;
         final Znode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.znodes()) : null;
-        final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.conditions(0)) : null;
+        final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.where_conditions()) : null;
         final Expression groupByExpressions = ctx.GROUP_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.group_by_expressions()) : null;
-        final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.conditions(ctx.WHERE_WORD() != null ? 1 : 0)) : null;
+        final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.having_conditions()) : null;
         final Expression orderByExpressions = ctx.ORDER_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.order_by_expressions()) : null;
 
         return new Select(selectExpressions, fromZnodes, whereConditions, groupByExpressions, havingConditions, orderByExpressions);

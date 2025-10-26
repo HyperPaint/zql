@@ -18,4 +18,14 @@ public class ExpressionNumber extends Expression {
             this.number = Integer.valueOf(number);
         }
     }
+
+    @Override
+    public Number eval(String path, String data) {
+        return number;
+    }
+
+    @Override
+    public String name() {
+        return String.valueOf(number);
+    }
 }

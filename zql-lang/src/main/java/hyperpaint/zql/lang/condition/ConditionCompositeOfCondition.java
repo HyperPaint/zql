@@ -16,4 +16,13 @@ public class ConditionCompositeOfCondition extends Condition {
         this.left = left;
         this.right = right;
     }
+
+    @Override
+    public boolean pass(String path, String data) {
+        return switch (getType()) {
+            case AND -> left.pass(path, data) && right.pass(path, data);
+            case OR -> left.pass(path, data) || right.pass(path, data);
+            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+        };
+    }
 }

@@ -14,4 +14,12 @@ public class ConditionWrapper extends Condition {
 
         this.wrappedCondition = condition;
     }
+
+    @Override
+    public boolean pass(String path, String data) {
+        return switch (getType()) {
+            case IN_BRACKETS -> wrappedCondition.pass(path, data);
+            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+        };
+    }
 }

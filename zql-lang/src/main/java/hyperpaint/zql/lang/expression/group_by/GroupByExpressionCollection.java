@@ -5,11 +5,11 @@ import hyperpaint.zql.lang.expression.ExpressionCollection;
 import lombok.NonNull;
 import lombok.ToString;
 
-import java.util.Collection;
+import java.util.List;
 
 @ToString(callSuper = true)
 public class GroupByExpressionCollection extends ExpressionCollection {
-    public GroupByExpressionCollection(@NonNull Collection<Expression> collection) {
-        super(Type.COMMA, collection);
+    public GroupByExpressionCollection(@NonNull List<Expression> list) {
+        super(Type.COMMA, list);
     }
 }

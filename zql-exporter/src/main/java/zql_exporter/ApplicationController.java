@@ -1,7 +1,7 @@
 package zql_exporter;
 
 import com.jayway.jsonpath.JsonPath;
-import hyperpaint.zql.sql.PreparedSelect;
+import hyperpaint.zql.exec.PreparedSelect;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;

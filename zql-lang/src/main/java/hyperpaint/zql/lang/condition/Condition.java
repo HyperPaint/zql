@@ -19,4 +19,8 @@ public abstract class Condition {
     }
 
     private final Condition.Type type;
+
+    public boolean pass(String path, String data) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 }

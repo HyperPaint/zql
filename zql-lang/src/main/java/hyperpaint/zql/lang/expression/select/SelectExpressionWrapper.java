@@ -15,4 +15,9 @@ public class SelectExpressionWrapper extends Expression {
         this.wrappedExpression = expression;
         this.alias = alias;
     }
+
+    @Override
+    public String name() {
+        return alias;
+    }
 }

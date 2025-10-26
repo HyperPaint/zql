@@ -24,15 +24,15 @@ class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
         if (left.getType() == Znode.Type.COMMA && right.getType() == Znode.Type.COMMA) {
             final ZnodeCollection leftCollection = (ZnodeCollection) left;
             final ZnodeCollection rightCollection = (ZnodeCollection) right;
-            leftCollection.getCollection().addAll(rightCollection.getCollection());
+            leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
         } else if (left.getType() == Znode.Type.COMMA) {
             final ZnodeCollection leftCollection = (ZnodeCollection) left;
-            leftCollection.getCollection().add(right);
+            leftCollection.getList().add(right);
             return leftCollection;
         } else if (right.getType() == Znode.Type.COMMA) {
             final ZnodeCollection rightCollection = (ZnodeCollection) right;
-            rightCollection.getCollection().add(left);
+            rightCollection.getList().add(left);
             return rightCollection;
         } else {
             final List<Znode> list = new ArrayList<>();
@@ -43,17 +43,17 @@ class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
     }
 
     @Override
-    public Znode visitZnodesList(ZQLParser.ZnodesListContext ctx) {
-        return new ZnodeWrapper(Znode.Type.LIST, visit(ctx.znodes()));
-    }
-
-    @Override
     public Znode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
         return visit(ctx.znode());
     }
 
     @Override
-    public Znode visitZnode(ZQLParser.ZnodeContext ctx) {
+    public Znode visitZnodeList(ZQLParser.ZnodeListContext ctx) {
+        return new ZnodeWrapper(Znode.Type.LIST, visit(ctx.znode()));
+    }
+
+    @Override
+    public Znode visitZnodePath(ZQLParser.ZnodePathContext ctx) {
         return new ZnodePath(ctx.getText());
     }
 }

@@ -24,5 +24,13 @@ public abstract class Expression {
         IDENTIFIER
     }
 
-    private final Expression.Type type;
+    protected final Expression.Type type;
+
+    public Object eval(String path, String data) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    public String name() {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 }

@@ -14,4 +14,26 @@ public class ExpressionString extends Expression {
 
         this.text = text;
     }
+
+    @Override
+    public String eval(String path, String data) {
+        return switch (type) {
+            case TEXT -> text;
+            case IDENTIFIER -> {
+                if (text.equalsIgnoreCase("path")) {
+                    yield path;
+                } else if (text.equalsIgnoreCase("data")) {
+                    yield data;
+                } else {
+                    throw new IllegalArgumentException("Unexpected value: " + text);
+                }
+            }
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
+    public String name() {
+        return text;
+    }
 }

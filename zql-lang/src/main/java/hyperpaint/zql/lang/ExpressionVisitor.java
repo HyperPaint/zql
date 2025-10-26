@@ -28,15 +28,15 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
         if (left.getType() == Expression.Type.COMMA && right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            leftCollection.getCollection().addAll(rightCollection.getCollection());
+            leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
         } else if (left.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
-            leftCollection.getCollection().add(right);
+            leftCollection.getList().add(right);
             return leftCollection;
         } else if (right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            rightCollection.getCollection().add(left);
+            rightCollection.getList().add(left);
             return rightCollection;
         } else {
             final List<Expression> list = new ArrayList<>();
@@ -68,15 +68,29 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     // endregion
 
-    // region Condition
+    // region Where
 
     @Override
-    public Expression visitConditionExpressionFunction(ZQLParser.ConditionExpressionFunctionContext ctx) {
+    public Expression visitWhereConditionExpressionFunction(ZQLParser.WhereConditionExpressionFunctionContext ctx) {
         return visit(ctx.expression_function());
     }
 
     @Override
-    public Expression visitConditionExpressionPrimitive(ZQLParser.ConditionExpressionPrimitiveContext ctx) {
+    public Expression visitWhereConditionExpressionPrimitive(ZQLParser.WhereConditionExpressionPrimitiveContext ctx) {
+        return visit(ctx.expression_primitive());
+    }
+
+    // endregion
+
+    // region Having
+
+    @Override
+    public Expression visitHavingConditionExpressionFunction(ZQLParser.HavingConditionExpressionFunctionContext ctx) {
+        return visit(ctx.expression_aggregate_function());
+    }
+
+    @Override
+    public Expression visitHavingConditionExpressionPrimitive(ZQLParser.HavingConditionExpressionPrimitiveContext ctx) {
         return visit(ctx.expression_primitive());
     }
 
@@ -92,15 +106,15 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
         if (left.getType() == Expression.Type.COMMA && right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            leftCollection.getCollection().addAll(rightCollection.getCollection());
+            leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
         } else if (left.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
-            leftCollection.getCollection().add(right);
+            leftCollection.getList().add(right);
             return leftCollection;
         } else if (right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            rightCollection.getCollection().add(left);
+            rightCollection.getList().add(left);
             return rightCollection;
         } else {
             final List<Expression> list = new ArrayList<>();
@@ -137,15 +151,15 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
         if (left.getType() == Expression.Type.COMMA && right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            leftCollection.getCollection().addAll(rightCollection.getCollection());
+            leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
         } else if (left.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
-            leftCollection.getCollection().add(right);
+            leftCollection.getList().add(right);
             return leftCollection;
         } else if (right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
-            rightCollection.getCollection().add(left);
+            rightCollection.getList().add(left);
             return rightCollection;
         } else {
             final List<Expression> list = new ArrayList<>();
@@ -211,6 +225,33 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
     // region Expression function
 
     @Override
+    public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
+        if (ctx.expression_function(0) != null) {
+            if (ctx.expression_function(1) != null) {
+                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_function(0)), visit(ctx.expression_function(1)));
+            } else if (ctx.expression_primitive(1) != null) {
+                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_function(0)), visit(ctx.expression_primitive(1)));
+            } else {
+                throw new ZQLException("Expression function and expression primitive are missing in context");
+            }
+        } else if (ctx.expression_primitive(0) != null) {
+            if (ctx.expression_function(1) != null) {
+                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_primitive(0)), visit(ctx.expression_function(1)));
+            } else if (ctx.expression_primitive(1) != null) {
+                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_primitive(0)), visit(ctx.expression_primitive(1)));
+            } else {
+                throw new ZQLException("Expression function and expression primitive are missing in context");
+            }
+        } else {
+            throw new ZQLException("Expression function and expression primitive are missing in context");
+        }
+    }
+
+    // endregion
+
+    // region Expression aggregate function
+
+    @Override
     public Expression visitExpressionCount(ZQLParser.ExpressionCountContext ctx) {
         if (ctx.expression_function() != null) {
             return new ExpressionWrapper(Expression.Type.COUNT, visit(ctx.expression_function()));
@@ -260,29 +301,6 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
             return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.expression_function()));
         } else if (ctx.expression_primitive() != null) {
             return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.expression_primitive()));
-        } else {
-            throw new ZQLException("Expression function and expression primitive are missing in context");
-        }
-    }
-
-    @Override
-    public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
-        if (ctx.expression_function(0) != null) {
-            if (ctx.expression_function(1) != null) {
-                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_function(0)), visit(ctx.expression_function(1)));
-            } else if (ctx.expression_primitive(1) != null) {
-                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_function(0)), visit(ctx.expression_primitive(1)));
-            } else {
-                throw new ZQLException("Expression function and expression primitive are missing in context");
-            }
-        } else if (ctx.expression_primitive(0) != null) {
-            if (ctx.expression_function(1) != null) {
-                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_primitive(0)), visit(ctx.expression_function(1)));
-            } else if (ctx.expression_primitive(1) != null) {
-                return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.expression_primitive(0)), visit(ctx.expression_primitive(1)));
-            } else {
-                throw new ZQLException("Expression function and expression primitive are missing in context");
-            }
         } else {
             throw new ZQLException("Expression function and expression primitive are missing in context");
         }

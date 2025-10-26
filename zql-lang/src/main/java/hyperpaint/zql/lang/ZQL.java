@@ -92,7 +92,7 @@ public class ZQL {
                 final ExpressionCollection expressionCollection = (ExpressionCollection) expression;
                 final StringBuilder result = new StringBuilder();
 
-                for (var iterator = expressionCollection.getCollection().iterator(); iterator.hasNext(); ) {
+                for (var iterator = expressionCollection.getList().iterator(); iterator.hasNext(); ) {
                     var item = iterator.next();
 
                     result.append(combine(item));
@@ -168,7 +168,7 @@ public class ZQL {
                 final ZnodeCollection znodeCollection = (ZnodeCollection) znode;
                 final StringBuilder result = new StringBuilder();
 
-                for (var iterator = znodeCollection.getCollection().iterator(); iterator.hasNext(); ) {
+                for (var iterator = znodeCollection.getList().iterator(); iterator.hasNext(); ) {
                     var item = iterator.next();
 
                     result.append(combine(item));
