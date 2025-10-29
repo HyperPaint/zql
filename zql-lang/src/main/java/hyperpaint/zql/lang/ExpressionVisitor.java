@@ -16,7 +16,7 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     private Expression visitExpressionsComma(ParseTree parseTree) {
         final Expression left = visit(parseTree.getChild(0));
-        final Expression right = visit(parseTree.getChild(1));
+        final Expression right = visit(parseTree.getChild(2));
 
         if (left.getType() == Expression.Type.COMMA && right.getType() == Expression.Type.COMMA) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
@@ -46,7 +46,7 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitSelectExpressionsBase(ZQLParser.SelectExpressionsBaseContext ctx) {
-        return visit(ctx.getChild(0));
+        return visit(ctx.selectExpression());
     }
 
     @Override
@@ -71,7 +71,7 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitGroupByExpressionsBase(ZQLParser.GroupByExpressionsBaseContext ctx) {
-        return visit(ctx.getChild(0));
+        return visit(ctx.groupByExpression());
     }
 
     @Override
@@ -96,7 +96,7 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitOrderByExpressionsBase(ZQLParser.OrderByExpressionsBaseContext ctx) {
-        return visit(ctx.getChild(0));
+        return visit(ctx.orderByExpression());
     }
 
     @Override
@@ -112,37 +112,41 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitExpressionAlias(ZQLParser.ExpressionAliasContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.ALIAS, visit(ctx.getChild(0)), visit(ctx.getChild(1)));
+        if (ctx.AS_WORD() != null) {
+            return new ExpressionWrapper2(Expression.Type.ALIAS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+        } else {
+            return new ExpressionWrapper2(Expression.Type.ALIAS, visit(ctx.getChild(0)), visit(ctx.getChild(1)));
+        }
     }
 
     @Override
     public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.MAX, visit(ctx.getChild(0)), visit(ctx.getChild(1)));
+        return new ExpressionWrapper2(Expression.Type.MAX, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
     }
 
     @Override
     public Expression visitExpressionCount(ZQLParser.ExpressionCountContext ctx) {
-        return new ExpressionWrapper(Expression.Type.COUNT, visit(ctx.getChild(0)));
+        return new ExpressionWrapper(Expression.Type.COUNT, visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionSum(ZQLParser.ExpressionSumContext ctx) {
-        return new ExpressionWrapper(Expression.Type.SUM, visit(ctx.getChild(0)));
+        return new ExpressionWrapper(Expression.Type.SUM, visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionAvg(ZQLParser.ExpressionAvgContext ctx) {
-        return new ExpressionWrapper(Expression.Type.AVG, visit(ctx.getChild(0)));
+        return new ExpressionWrapper(Expression.Type.AVG, visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionMin(ZQLParser.ExpressionMinContext ctx) {
-        return new ExpressionWrapper(Expression.Type.MIN, visit(ctx.getChild(0)));
+        return new ExpressionWrapper(Expression.Type.MIN, visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionMax(ZQLParser.ExpressionMaxContext ctx) {
-        return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.getChild(0)));
+        return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.getChild(2)));
     }
 
     @Override

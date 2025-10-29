@@ -16,4 +16,30 @@ public class ZnodeCollection extends Znode {
 
         this.list = list;
     }
+
+    @Override
+    public String text(boolean format) {
+        final StringBuilder result = new StringBuilder();
+
+        if (format) {
+            for (var iterator = list.iterator(); iterator.hasNext(); ) {
+                result.append(iterator.next().text());
+
+                if (iterator.hasNext()) {
+                    result.append(",\n");
+                }
+            }
+        } else {
+            for (var iterator = list.iterator(); iterator.hasNext(); ) {
+                result.append(iterator.next().text());
+
+                if (iterator.hasNext()) {
+                    result.append(", ");
+                }
+            }
+        }
+
+
+        return result.toString();
+    }
 }

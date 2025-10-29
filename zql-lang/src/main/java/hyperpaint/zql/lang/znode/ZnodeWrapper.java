@@ -14,4 +14,9 @@ public class ZnodeWrapper extends Znode {
 
         this.wrappedZnode = znode;
     }
+
+    @Override
+    public String text(boolean format) {
+        return "ls/" + wrappedZnode.text();
+    }
 }

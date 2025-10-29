@@ -14,5 +14,13 @@ public abstract class Znode {
         PATH
     }
 
-    private final Type type;
+    protected final Type type;
+
+    public final String text() {
+        return text(false);
+    }
+
+    public String text(boolean format) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 }

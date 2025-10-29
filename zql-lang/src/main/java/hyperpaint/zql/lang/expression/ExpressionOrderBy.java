@@ -24,4 +24,13 @@ public class ExpressionOrderBy extends Expression {
     public boolean isDescending() {
         return !ascending;
     }
+
+    @Override
+    public String text(boolean format) {
+        if (ascending) {
+            return wrappedExpression.text() + " asc";
+        } else {
+            return wrappedExpression.text() + " desc";
+        }
+    }
 }

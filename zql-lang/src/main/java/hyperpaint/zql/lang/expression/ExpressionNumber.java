@@ -28,7 +28,7 @@ public class ExpressionNumber extends Expression {
     }
 
     @Override
-    public String name() {
+    public String text(boolean format) {
         return String.valueOf(number);
     }
 

@@ -94,7 +94,7 @@ public class PreparedSelect {
                     processSelectColumns(result, item);
                 }
             }
-            case ALIAS, COUNT, SUM, AVG, MIN, MAX, JSON_PATH, STRING, NUMBER, IDENTIFIER -> result.add(expression.name());
+            case ALIAS, COUNT, SUM, AVG, MIN, MAX, JSON_PATH, STRING, NUMBER, IDENTIFIER -> result.add(expression.text());
             // case ORDER -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
             default -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
         }

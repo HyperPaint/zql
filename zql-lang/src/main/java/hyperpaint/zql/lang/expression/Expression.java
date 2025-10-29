@@ -27,7 +27,11 @@ public abstract class Expression {
 
     protected final Expression.Type type;
 
-    public String name() {
+    public final String text() {
+        return text(false);
+    }
+
+    public String text(boolean format) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

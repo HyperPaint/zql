@@ -18,6 +18,23 @@ public class ConditionCompositeOfCondition extends Condition {
     }
 
     @Override
+    public String text(boolean format) {
+        if (format) {
+            return switch (type) {
+                case AND -> left.text() + "\nand " + right.text();
+                case OR -> left.text() + "\nor " + right.text();
+                default -> throw new IllegalArgumentException("Unexpected value: " + type);
+            };
+        } else {
+            return switch (type) {
+                case AND -> left.text() + " and " + right.text();
+                case OR -> left.text() + " or " + right.text();
+                default -> throw new IllegalArgumentException("Unexpected value: " + type);
+            };
+        }
+    }
+
+    @Override
     public boolean value(String path, String data) {
         return switch (type) {
             case AND -> left.value(path, data) && right.value(path, data);

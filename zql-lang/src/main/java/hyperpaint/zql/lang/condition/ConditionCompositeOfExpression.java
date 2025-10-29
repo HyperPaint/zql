@@ -21,6 +21,17 @@ public class ConditionCompositeOfExpression extends Condition {
     }
 
     @Override
+    public String text(boolean format) {
+        return switch (type) {
+            case EQUALS -> left.text() + " == " + right.text();
+            case NOT_EQUALS -> left.text() + " != " + right.text();
+            case LIKE -> left.text() + " =~ " + right.text();
+            case NOT_LIKE -> left.text() + " !~ " + right.text();
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
     public boolean value(String path, String data) {
         return switch (type) {
             case EQUALS -> Objects.equals(left.value(path, data).toString(), right.value(path, data).toString());

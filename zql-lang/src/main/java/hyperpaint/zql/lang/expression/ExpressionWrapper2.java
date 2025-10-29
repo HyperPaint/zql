@@ -18,10 +18,10 @@ public class ExpressionWrapper2 extends Expression {
     }
 
     @Override
-    public String name() {
+    public String text(boolean format) {
         return switch (type) {
-            case ALIAS -> wrappedExpression1.name() + " as " + wrappedExpression2.name();
-            case JSON_PATH -> "json(" + wrappedExpression1.name() + ", " + wrappedExpression2.name() + ")";
+            case ALIAS -> wrappedExpression1.text() + " as " + wrappedExpression2.text();
+            case JSON_PATH -> "json(" + wrappedExpression1.text() + ", " + wrappedExpression2.text() + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

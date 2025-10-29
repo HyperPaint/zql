@@ -15,9 +15,14 @@ class StatementVisitor extends ZQLBaseVisitor<Statement> {
     static final StatementVisitor INSTANCE = new StatementVisitor();
 
     @Override
+    public Statement visitStatement(ZQLParser.StatementContext ctx) {
+        return visit(ctx.getChild(0));
+    }
+
+    @Override
     public Statement visitSelect(ZQLParser.SelectContext ctx) {
         final Expression selectExpressions =  ctx.SELECT_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.selectExpressions()) : null;
-        final Znode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.znodes()) : null;
+        final Znode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.fromZnodes()) : null;
         final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.whereConditions()) : null;
         final Expression groupByExpressions = ctx.GROUP_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.groupByExpressions()) : null;
         final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.havingConditions()) : null;

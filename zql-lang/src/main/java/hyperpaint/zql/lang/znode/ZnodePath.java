@@ -14,4 +14,9 @@ public class ZnodePath extends Znode {
 
         this.path = path;
     }
+
+    @Override
+    public String text(boolean format) {
+        return path;
+    }
 }

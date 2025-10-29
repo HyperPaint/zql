@@ -16,13 +16,13 @@ public class ExpressionWrapper extends Expression {
     }
 
     @Override
-    public String name() {
+    public String text(boolean format) {
         return switch (type) {
-            case COUNT -> "count(" + wrappedExpression.name() + ")";
-            case SUM -> "sum(" + wrappedExpression.name() + ")";
-            case AVG -> "avg(" + wrappedExpression.name() + ")";
-            case MIN -> "min(" + wrappedExpression.name() + ")";
-            case MAX -> "max(" + wrappedExpression.name() + ")";
+            case COUNT -> "count(" + wrappedExpression.text() + ")";
+            case SUM -> "sum(" + wrappedExpression.text() + ")";
+            case AVG -> "avg(" + wrappedExpression.text() + ")";
+            case MIN -> "min(" + wrappedExpression.text() + ")";
+            case MAX -> "max(" + wrappedExpression.text() + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

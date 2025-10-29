@@ -16,6 +16,14 @@ public class ConditionWrapper extends Condition {
     }
 
     @Override
+    public String text(boolean format) {
+        return switch (type) {
+            case BRACKETS -> "(" + wrappedCondition.text() + ")";
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
     public boolean value(String path, String data) {
         return switch (type) {
             case BRACKETS -> wrappedCondition.value(path, data);

@@ -72,7 +72,7 @@ statement
 
 select
     :   SELECT_WORD selectExpressions
-        (FROM_WORD znodes)?
+        (FROM_WORD fromZnodes)?
         (WHERE_WORD whereConditions)?
         (GROUP_BY_WORD groupByExpressions)?
         (HAVING_WORD havingConditions)?
@@ -97,8 +97,8 @@ selectExpression
     |   expressionIdentifier
     ;
 
-znodes
-    :   znodes ',' znodes # ZnodesComma
+fromZnodes
+    :   fromZnodes ',' fromZnodes # ZnodesComma
     |   znode # ZnodesBase
     ;
 

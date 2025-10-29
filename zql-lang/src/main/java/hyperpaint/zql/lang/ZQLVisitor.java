@@ -12,6 +12,6 @@ class ZQLVisitor extends ZQLBaseVisitor<Statement> {
 
     @Override
     public Statement visitZql(ZQLParser.ZqlContext ctx) {
-        return StatementVisitor.INSTANCE.visit(ctx.statement());
+        return StatementVisitor.INSTANCE.visit(ctx.getChild(0));
     }
 }

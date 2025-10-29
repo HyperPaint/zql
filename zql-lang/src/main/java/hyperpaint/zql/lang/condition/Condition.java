@@ -20,6 +20,14 @@ public abstract class Condition {
 
     protected final Condition.Type type;
 
+    public final String text() {
+        return text(false);
+    }
+
+    public String text(boolean format) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
     public boolean value(String path, String data) {
         throw new UnsupportedOperationException("Not implemented");
     }

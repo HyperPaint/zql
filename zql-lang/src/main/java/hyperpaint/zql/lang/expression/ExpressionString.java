@@ -16,8 +16,13 @@ public class ExpressionString extends Expression {
     }
 
     @Override
-    public String name() {
-        return string;
+    public String text(boolean format) {
+        if (string.contains("\"")) {
+            return "'" + string + "'";
+        } else {
+            return "\"" + string + "\"";
+        }
+
     }
 
     @Override

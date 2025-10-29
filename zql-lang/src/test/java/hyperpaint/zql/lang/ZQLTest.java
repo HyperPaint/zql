@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ZQLTest {
     private static void queryEqualsParseAndCombine(String query) {
-        assertDoesNotThrow(() -> assertEquals(query, ZQL.combine(ZQL.parse(query))));
+        assertDoesNotThrow(() -> assertEquals(query, ZQL.parse(query).text()));
     }
 
     @Test

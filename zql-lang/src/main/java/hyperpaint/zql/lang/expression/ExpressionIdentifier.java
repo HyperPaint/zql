@@ -16,7 +16,7 @@ public class ExpressionIdentifier extends Expression {
     }
 
     @Override
-    public String name() {
+    public String text(boolean format) {
         return identifier;
     }
 
