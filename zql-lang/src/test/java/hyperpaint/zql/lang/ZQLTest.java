@@ -1,5 +1,6 @@
 package hyperpaint.zql.lang;
 
+import hyperpaint.zql.lang.statement.Select;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,6 +23,12 @@ class ZQLTest {
     @Test
     void selectIdentifierSemicolon() {
         queryEqualsParseAndCombine("select id;");
+    }
+
+    @Test
+    void selectJsonSemicolon() {
+        Select select = (Select) ZQL.parse("select json_path('{\"key\": \"value\"}', '$.key');");
+        assertEquals("value", select.getSelectExpression().value(null, null));
     }
 
     @Test

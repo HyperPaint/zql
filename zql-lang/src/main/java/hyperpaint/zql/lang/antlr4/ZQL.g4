@@ -29,7 +29,7 @@ SUM_WORD: 'sum';
 AVG_WORD: 'avg';
 MIN_WORD: 'min';
 MAX_WORD: 'max';
-JSON_WORD: 'json_path';
+JSON_PATH_WORD: 'json_path';
 
 AND_WORD: 'and';
 OR_WORD: 'or';
@@ -60,7 +60,7 @@ identifier
     |   AVG_WORD
     |   MIN_WORD
     |   MAX_WORD
-    |   JSON_WORD
+    |   JSON_PATH_WORD
     |   AND_WORD
     |   OR_WORD
     |   LIST_WORD
@@ -205,7 +205,7 @@ expressionAlias
     ;
 
 expressionJsonPath
-    :   JSON_WORD '(' (expressionJsonPath | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionString | expressionIdentifier) ')'
+    :   JSON_PATH_WORD '(' (expressionJsonPath | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionString | expressionIdentifier) ')'
     ;
 
 expressionCount

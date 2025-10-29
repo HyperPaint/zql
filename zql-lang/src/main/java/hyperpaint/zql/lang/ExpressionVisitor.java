@@ -121,7 +121,7 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.MAX, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
+        return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
     }
 
     @Override

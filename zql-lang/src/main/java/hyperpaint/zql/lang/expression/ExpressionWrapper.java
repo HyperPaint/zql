@@ -26,4 +26,12 @@ public class ExpressionWrapper extends Expression {
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
+
+    @Override
+    public Object value(String path, String data) {
+        return switch (type) {
+            case COUNT, SUM, AVG, MIN, MAX -> wrappedExpression.value(path, data);
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
 }

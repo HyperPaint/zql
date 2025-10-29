@@ -1,5 +1,6 @@
 package hyperpaint.zql.lang.expression;
 
+import com.jayway.jsonpath.JsonPath;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
@@ -22,6 +23,15 @@ public class ExpressionWrapper2 extends Expression {
         return switch (type) {
             case ALIAS -> wrappedExpression1.text() + " as " + wrappedExpression2.text();
             case JSON_PATH -> "json(" + wrappedExpression1.text() + ", " + wrappedExpression2.text() + ")";
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
+    public Object value(String path, String data) {
+        return switch (type) {
+            case ALIAS -> wrappedExpression1.value(path, data);
+            case JSON_PATH -> JsonPath.read(wrappedExpression1.value(path, data).toString(), wrappedExpression2.value(path, data).toString());
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
