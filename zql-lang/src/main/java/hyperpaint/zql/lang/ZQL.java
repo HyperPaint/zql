@@ -7,8 +7,8 @@ import hyperpaint.zql.lang.condition.ConditionCompositeOfCondition;
 import hyperpaint.zql.lang.condition.ConditionCompositeOfExpression;
 import hyperpaint.zql.lang.condition.ConditionWrapper;
 import hyperpaint.zql.lang.expression.*;
-import hyperpaint.zql.lang.expression.order_by.OrderByExpressionWrapper;
-import hyperpaint.zql.lang.expression.select.SelectExpressionWrapper;
+import hyperpaint.zql.lang.expression.ExpressionOrderBy;
+import hyperpaint.zql.lang.expression.ExpressionAlias;
 import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.statement.Statement;
 import hyperpaint.zql.lang.znode.Znode;
@@ -105,21 +105,21 @@ public class ZQL {
                 return result.toString();
             }
             case ALIAS -> {
-                final SelectExpressionWrapper selectExpressionWrapper = (SelectExpressionWrapper) expression;
-                if (selectExpressionWrapper.getAlias().contains("'")) {
-                    return combine(selectExpressionWrapper.getWrappedExpression()) + " as " + "\"" + selectExpressionWrapper.getAlias() + "\"";
-                } else if (selectExpressionWrapper.getAlias().contains("\"")) {
-                    return combine(selectExpressionWrapper.getWrappedExpression()) + " as " + "'" + selectExpressionWrapper.getAlias() + "'";
+                final ExpressionAlias expressionAlias = (ExpressionAlias) expression;
+                if (expressionAlias.getAlias().contains("'")) {
+                    return combine(expressionAlias.getWrappedExpression()) + " as " + "\"" + expressionAlias.getAlias() + "\"";
+                } else if (expressionAlias.getAlias().contains("\"")) {
+                    return combine(expressionAlias.getWrappedExpression()) + " as " + "'" + expressionAlias.getAlias() + "'";
                 } else {
-                    return combine(selectExpressionWrapper.getWrappedExpression()) + " as " + selectExpressionWrapper.getAlias();
+                    return combine(expressionAlias.getWrappedExpression()) + " as " + expressionAlias.getAlias();
                 }
             }
             case ORDER -> {
-                final OrderByExpressionWrapper orderByExpressionWrapper = (OrderByExpressionWrapper) expression;
-                if (orderByExpressionWrapper.isAscending()) {
-                    return combine(orderByExpressionWrapper.getWrappedExpression()) + " asc";
+                final ExpressionOrderBy expressionOrderBy = (ExpressionOrderBy) expression;
+                if (expressionOrderBy.isAscending()) {
+                    return combine(expressionOrderBy.getWrappedExpression()) + " asc";
                 } else {
-                    return combine(orderByExpressionWrapper.getWrappedExpression()) + " desc";
+                    return combine(expressionOrderBy.getWrappedExpression()) + " desc";
                 }
             }
             case COUNT -> {
@@ -146,9 +146,9 @@ public class ZQL {
                 final ExpressionWrapper2 expressionWrapper = (ExpressionWrapper2) expression;
                 return "json(" + combine(expressionWrapper.getWrappedExpression1()) + ", " + combine(expressionWrapper.getWrappedExpression2()) + ")";
             }
-            case TEXT -> {
+            case STRING -> {
                 final ExpressionString expressionString = (ExpressionString) expression;
-                return "\"" + expressionString.getText() + "\"";
+                return "\"" + expressionString.getString() + "\"";
             }
             case NUMBER -> {
                 final ExpressionNumber expressionNumber = (ExpressionNumber) expression;
@@ -156,7 +156,7 @@ public class ZQL {
             }
             case IDENTIFIER -> {
                 final ExpressionString expressionString = (ExpressionString) expression;
-                return expressionString.getText();
+                return expressionString.getString();
             }
             default -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
         }
@@ -202,7 +202,7 @@ public class ZQL {
                 final ConditionCompositeOfCondition conditionCompositeOfCondition = (ConditionCompositeOfCondition) condition;
                 return combine(conditionCompositeOfCondition.getLeft()) + " or " + combine(conditionCompositeOfCondition.getRight());
             }
-            case IN_BRACKETS -> {
+            case BRACKETS -> {
                 final ConditionWrapper conditionWrapper = (ConditionWrapper) condition;
                 return "(" + combine(conditionWrapper.getWrappedCondition()) + ")";
             }

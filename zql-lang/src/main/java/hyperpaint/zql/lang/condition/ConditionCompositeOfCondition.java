@@ -18,11 +18,11 @@ public class ConditionCompositeOfCondition extends Condition {
     }
 
     @Override
-    public boolean pass(String path, String data) {
-        return switch (getType()) {
-            case AND -> left.pass(path, data) && right.pass(path, data);
-            case OR -> left.pass(path, data) || right.pass(path, data);
-            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+    public boolean value(String path, String data) {
+        return switch (type) {
+            case AND -> left.value(path, data) && right.value(path, data);
+            case OR -> left.value(path, data) || right.value(path, data);
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 }

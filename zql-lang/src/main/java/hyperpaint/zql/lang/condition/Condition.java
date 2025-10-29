@@ -10,7 +10,7 @@ public abstract class Condition {
         AND,
         OR,
 
-        IN_BRACKETS,
+        BRACKETS,
 
         EQUALS,
         NOT_EQUALS,
@@ -18,9 +18,9 @@ public abstract class Condition {
         NOT_LIKE
     }
 
-    private final Condition.Type type;
+    protected final Condition.Type type;
 
-    public boolean pass(String path, String data) {
+    public boolean value(String path, String data) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

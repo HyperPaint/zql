@@ -17,9 +17,9 @@ class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
     static final ZnodeVisitor INSTANCE = new ZnodeVisitor();
 
     @Override
-    public Znode visitZnodesCommaZnodes(ZQLParser.ZnodesCommaZnodesContext ctx) {
-        final Znode left = visit(ctx.znodes(0));
-        final Znode right = visit(ctx.znodes(1));
+    public Znode visitZnodesComma(ZQLParser.ZnodesCommaContext ctx) {
+        final Znode left = visit(ctx.getChild(0));
+        final Znode right = visit(ctx.getChild(1));
 
         if (left.getType() == Znode.Type.COMMA && right.getType() == Znode.Type.COMMA) {
             final ZnodeCollection leftCollection = (ZnodeCollection) left;

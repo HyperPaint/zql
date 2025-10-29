@@ -17,13 +17,13 @@ public class ExpressionWrapper extends Expression {
 
     @Override
     public String name() {
-        return switch (getType()) {
+        return switch (type) {
             case COUNT -> "count(" + wrappedExpression.name() + ")";
             case SUM -> "sum(" + wrappedExpression.name() + ")";
             case AVG -> "avg(" + wrappedExpression.name() + ")";
             case MIN -> "min(" + wrappedExpression.name() + ")";
             case MAX -> "max(" + wrappedExpression.name() + ")";
-            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 }

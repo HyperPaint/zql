@@ -13,7 +13,7 @@ public class ConditionCompositeOfExpression extends Condition {
     protected final Expression left;
     protected final Expression right;
 
-    public ConditionCompositeOfExpression(Type type, Expression left, Expression right) {
+    public ConditionCompositeOfExpression(@NonNull Type type, @NonNull Expression left, @NonNull Expression right) {
         super(type);
 
         this.left = left;
@@ -21,13 +21,13 @@ public class ConditionCompositeOfExpression extends Condition {
     }
 
     @Override
-    public boolean pass(String path, String data) {
-        return switch (getType()) {
-            case EQUALS -> Objects.equals(left.eval(path, data).toString(), right.eval(path, data).toString());
-            case NOT_EQUALS -> !Objects.equals(left.eval(path, data).toString(), right.eval(path, data).toString());
-            case LIKE -> left.eval(path, data).toString().matches(right.eval(path, data).toString());
-            case NOT_LIKE -> !left.eval(path, data).toString().matches(right.eval(path, data).toString());
-            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+    public boolean value(String path, String data) {
+        return switch (type) {
+            case EQUALS -> Objects.equals(left.value(path, data).toString(), right.value(path, data).toString());
+            case NOT_EQUALS -> !Objects.equals(left.value(path, data).toString(), right.value(path, data).toString());
+            case LIKE -> left.value(path, data).toString().matches(right.value(path, data).toString());
+            case NOT_LIKE -> !left.value(path, data).toString().matches(right.value(path, data).toString());
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 }

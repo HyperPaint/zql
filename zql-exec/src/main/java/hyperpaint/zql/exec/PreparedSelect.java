@@ -94,7 +94,7 @@ public class PreparedSelect {
                     processSelectColumns(result, item);
                 }
             }
-            case ALIAS, COUNT, SUM, AVG, MIN, MAX, JSON_PATH, TEXT, NUMBER, IDENTIFIER -> result.add(expression.name());
+            case ALIAS, COUNT, SUM, AVG, MIN, MAX, JSON_PATH, STRING, NUMBER, IDENTIFIER -> result.add(expression.name());
             // case ORDER -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
             default -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
         }
@@ -203,7 +203,7 @@ public class PreparedSelect {
 
     private void processWhereFilter(Map<String, String> result, Condition condition) throws ZQLException {
         try {
-            result.entrySet().removeIf(entry -> !condition.pass(entry.getKey(), entry.getValue()));
+            result.entrySet().removeIf(entry -> !condition.value(entry.getKey(), entry.getValue()));
         } catch (Exception e) {
             throw new ZQLException(e);
         }

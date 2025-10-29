@@ -18,16 +18,11 @@ public class ExpressionWrapper2 extends Expression {
     }
 
     @Override
-    public Object eval(String path, String data) {
-        // todo json path
-        return null;
-    }
-
-    @Override
     public String name() {
-        return switch (getType()) {
+        return switch (type) {
+            case ALIAS -> wrappedExpression1.name() + " as " + wrappedExpression2.name();
             case JSON_PATH -> "json(" + wrappedExpression1.name() + ", " + wrappedExpression2.name() + ")";
-            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 }

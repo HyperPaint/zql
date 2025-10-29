@@ -16,12 +16,12 @@ class StatementVisitor extends ZQLBaseVisitor<Statement> {
 
     @Override
     public Statement visitSelect(ZQLParser.SelectContext ctx) {
-        final Expression selectExpressions =  ctx.SELECT_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.select_expressions()) : null;
+        final Expression selectExpressions =  ctx.SELECT_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.selectExpressions()) : null;
         final Znode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.znodes()) : null;
-        final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.where_conditions()) : null;
-        final Expression groupByExpressions = ctx.GROUP_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.group_by_expressions()) : null;
-        final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.having_conditions()) : null;
-        final Expression orderByExpressions = ctx.ORDER_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.order_by_expressions()) : null;
+        final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.whereConditions()) : null;
+        final Expression groupByExpressions = ctx.GROUP_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.groupByExpressions()) : null;
+        final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.havingConditions()) : null;
+        final Expression orderByExpressions = ctx.ORDER_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.orderByExpressions()) : null;
 
         return new Select(selectExpressions, fromZnodes, whereConditions, groupByExpressions, havingConditions, orderByExpressions);
     }

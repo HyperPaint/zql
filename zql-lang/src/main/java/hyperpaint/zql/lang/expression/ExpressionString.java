@@ -7,33 +7,21 @@ import lombok.ToString;
 @Getter
 @ToString(callSuper = true)
 public class ExpressionString extends Expression {
-    private final String text;
+    private final String string;
 
-    public ExpressionString(@NonNull Type type, @NonNull String text) {
-        super(type);
+    public ExpressionString(@NonNull String string) {
+        super(Type.STRING);
 
-        this.text = text;
-    }
-
-    @Override
-    public String eval(String path, String data) {
-        return switch (type) {
-            case TEXT -> text;
-            case IDENTIFIER -> {
-                if (text.equalsIgnoreCase("path")) {
-                    yield path;
-                } else if (text.equalsIgnoreCase("data")) {
-                    yield data;
-                } else {
-                    throw new IllegalArgumentException("Unexpected value: " + text);
-                }
-            }
-            default -> throw new IllegalArgumentException("Unexpected value: " + type);
-        };
+        this.string = string;
     }
 
     @Override
     public String name() {
-        return text;
+        return string;
+    }
+
+    @Override
+    public String value(String path, String data) {
+        return string;
     }
 }

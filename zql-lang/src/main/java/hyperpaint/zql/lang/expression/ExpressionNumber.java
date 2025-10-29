@@ -9,23 +9,31 @@ import lombok.ToString;
 public class ExpressionNumber extends Expression {
     private final Number number;
 
-    public ExpressionNumber(@NonNull Type type, @NonNull String number) {
-        super(type);
+    public ExpressionNumber(@NonNull String number) {
+        super(Type.NUMBER);
 
-        if (number.contains(".")) {
-            this.number = Float.valueOf(number);
-        } else {
+        if (!number.contains(".")) {
             this.number = Integer.valueOf(number);
+        } else {
+            this.number = Float.valueOf(number);
         }
     }
 
-    @Override
-    public Number eval(String path, String data) {
-        return number;
+    boolean isInteger() {
+        return number instanceof Integer;
+    }
+
+    boolean isFloat() {
+        return number instanceof Float;
     }
 
     @Override
     public String name() {
         return String.valueOf(number);
+    }
+
+    @Override
+    public Number value(String path, String data) {
+        return number;
     }
 }

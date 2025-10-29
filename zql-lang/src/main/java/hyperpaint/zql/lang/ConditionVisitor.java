@@ -9,132 +9,137 @@ import hyperpaint.zql.lang.condition.ConditionWrapper;
 import hyperpaint.zql.lang.expression.Expression;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 class ConditionVisitor extends ZQLBaseVisitor<Condition> {
     static final ConditionVisitor INSTANCE = new ConditionVisitor();
 
-    // region Where
-
-    @Override
-    public Condition visitWhereConditionsAndConditions(ZQLParser.WhereConditionsAndConditionsContext ctx) {
-        final Condition left = visit(ctx.where_conditions(0));
-        final Condition right = visit(ctx.where_conditions(1));
+    private Condition and(ParseTree parseTree) {
+        final Condition left = visit(parseTree.getChild(0));
+        final Condition right = visit(parseTree.getChild(1));
 
         return new ConditionCompositeOfCondition(Condition.Type.AND, left, right);
     }
 
-    @Override
-    public Condition visitWhereConditionsOrConditions(ZQLParser.WhereConditionsOrConditionsContext ctx) {
-        final Condition left = visit(ctx.where_conditions(0));
-        final Condition right = visit(ctx.where_conditions(1));
+    private Condition or(ParseTree parseTree) {
+        final Condition left = visit(parseTree.getChild(0));
+        final Condition right = visit(parseTree.getChild(1));
 
         return new ConditionCompositeOfCondition(Condition.Type.OR, left, right);
     }
 
+    private Condition brackets(ParseTree parseTree) {
+        final Condition condition = visit(parseTree.getChild(0));
+
+        return new ConditionWrapper(Condition.Type.BRACKETS, condition);
+    }
+
+    private Condition equals(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(1));
+
+        return new ConditionCompositeOfExpression(Condition.Type.EQUALS, left, right);
+    }
+
+    private Condition notEquals(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(1));
+
+        return new ConditionCompositeOfExpression(Condition.Type.NOT_EQUALS, left, right);
+    }
+
+    private Condition like(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(1));
+
+        return new ConditionCompositeOfExpression(Condition.Type.LIKE, left, right);
+    }
+
+    private Condition notLike(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(1));
+
+        return new ConditionCompositeOfExpression(Condition.Type.NOT_LIKE, left, right);
+    }
+
     @Override
-    public Condition visitWhereConditionsInBrackets(ZQLParser.WhereConditionsInBracketsContext ctx) {
-        return new ConditionWrapper(Condition.Type.IN_BRACKETS, visit(ctx.where_conditions()));
+    public Condition visitWhereConditionsAnd(ZQLParser.WhereConditionsAndContext ctx) {
+        return and(ctx);
+    }
+
+    @Override
+    public Condition visitWhereConditionsOr(ZQLParser.WhereConditionsOrContext ctx) {
+        return or(ctx);
+    }
+
+    @Override
+    public Condition visitWhereConditionsBrackets(ZQLParser.WhereConditionsBracketsContext ctx) {
+        return brackets(ctx);
     }
 
     @Override
     public Condition visitWhereConditionsBase(ZQLParser.WhereConditionsBaseContext ctx) {
-        return visit(ctx.where_condition());
+        return visit(ctx.getChild(0));
     }
 
     @Override
     public Condition visitWhereConditionEquals(ZQLParser.WhereConditionEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.EQUALS, left, right);
+        return equals(ctx);
     }
 
     @Override
     public Condition visitWhereConditionNotEquals(ZQLParser.WhereConditionNotEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_EQUALS, left, right);
+        return notEquals(ctx);
     }
 
     @Override
     public Condition visitWhereConditionLike(ZQLParser.WhereConditionLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.LIKE, left, right);
+        return like(ctx);
     }
 
     @Override
     public Condition visitWhereConditionNotLike(ZQLParser.WhereConditionNotLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.where_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_LIKE, left, right);
-    }
-
-    // endregion
-
-    // region Having
-
-    @Override
-    public Condition visitHavingConditionsAndConditions(ZQLParser.HavingConditionsAndConditionsContext ctx) {
-        final Condition left = visit(ctx.having_conditions(0));
-        final Condition right = visit(ctx.having_conditions(1));
-
-        return new ConditionCompositeOfCondition(Condition.Type.AND, left, right);
+        return notLike(ctx);
     }
 
     @Override
-    public Condition visitHavingConditionsOrConditions(ZQLParser.HavingConditionsOrConditionsContext ctx) {
-        final Condition left = visit(ctx.having_conditions(0));
-        final Condition right = visit(ctx.having_conditions(1));
-
-        return new ConditionCompositeOfCondition(Condition.Type.OR, left, right);
+    public Condition visitHavingConditionsAnd(ZQLParser.HavingConditionsAndContext ctx) {
+        return and(ctx);
     }
 
     @Override
-    public Condition visitHavingConditionsInBrackets(ZQLParser.HavingConditionsInBracketsContext ctx) {
-        return new ConditionWrapper(Condition.Type.IN_BRACKETS, visit(ctx.having_conditions()));
+    public Condition visitHavingConditionsOr(ZQLParser.HavingConditionsOrContext ctx) {
+        return or(ctx);
+    }
+
+    @Override
+    public Condition visitHavingConditionsBrackets(ZQLParser.HavingConditionsBracketsContext ctx) {
+        return brackets(ctx);
     }
 
     @Override
     public Condition visitHavingConditionsBase(ZQLParser.HavingConditionsBaseContext ctx) {
-        return visit(ctx.having_condition());
+        return visit(ctx.getChild(0));
     }
 
     @Override
     public Condition visitHavingConditionEquals(ZQLParser.HavingConditionEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.EQUALS, left, right);
+        return equals(ctx);
     }
 
     @Override
     public Condition visitHavingConditionNotEquals(ZQLParser.HavingConditionNotEqualsContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_EQUALS, left, right);
+        return notEquals(ctx);
     }
 
     @Override
     public Condition visitHavingConditionLike(ZQLParser.HavingConditionLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.LIKE, left, right);
+        return like(ctx);
     }
 
     @Override
     public Condition visitHavingConditionNotLike(ZQLParser.HavingConditionNotLikeContext ctx) {
-        final Expression left = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(0));
-        final Expression right = ExpressionVisitor.INSTANCE.visit(ctx.having_condition_expression(1));
-
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_LIKE, left, right);
+        return notLike(ctx);
     }
-
-    // endregion
 }

@@ -9,28 +9,29 @@ public abstract class Expression {
     public enum Type {
         COMMA,
 
+        JSON_PATH,
         ALIAS,
-        ORDER,
 
         COUNT,
         SUM,
         AVG,
         MIN,
         MAX,
-        JSON_PATH,
 
-        TEXT,
         NUMBER,
-        IDENTIFIER
+        STRING,
+        IDENTIFIER,
+
+        ORDER
     }
 
     protected final Expression.Type type;
 
-    public Object eval(String path, String data) {
+    public String name() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    public String name() {
+    public Object value(String path, String data) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

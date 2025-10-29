@@ -7,7 +7,7 @@ import lombok.ToString;
 @Getter
 @ToString(callSuper = true)
 public class ConditionWrapper extends Condition {
-    private final @NonNull Condition wrappedCondition;
+    private final Condition wrappedCondition;
 
     public ConditionWrapper(@NonNull Type type, @NonNull Condition condition) {
         super(type);
@@ -16,10 +16,10 @@ public class ConditionWrapper extends Condition {
     }
 
     @Override
-    public boolean pass(String path, String data) {
-        return switch (getType()) {
-            case IN_BRACKETS -> wrappedCondition.pass(path, data);
-            default -> throw new IllegalArgumentException("Unexpected value: " + getType());
+    public boolean value(String path, String data) {
+        return switch (type) {
+            case BRACKETS -> wrappedCondition.value(path, data);
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 }

@@ -8,11 +8,11 @@ import java.util.List;
 
 @Getter
 @ToString(callSuper = true)
-public abstract class ExpressionCollection extends Expression {
+public class ExpressionCollection extends Expression {
     private final List<Expression> list;
 
-    public ExpressionCollection(Type type, List<Expression> list) {
-        super(type);
+    public ExpressionCollection(@NonNull List<Expression> list) {
+        super(Type.COMMA);
 
         this.list = list;
     }

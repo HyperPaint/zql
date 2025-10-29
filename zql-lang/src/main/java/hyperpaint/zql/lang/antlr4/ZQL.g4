@@ -29,20 +29,19 @@ SUM_WORD: 'sum';
 AVG_WORD: 'avg';
 MIN_WORD: 'min';
 MAX_WORD: 'max';
-JSON_WORD: 'json';
+JSON_WORD: 'json_path';
 
 AND_WORD: 'and';
 OR_WORD: 'or';
 
-LS_WORD: 'list' | 'ls';
+LIST_WORD: 'list' | 'ls';
 
-TEXT: [']~[']*['] | ["]~["]*["];
+STRING: [']~[']*['] | ["]~["]*["];
 NUMBER: ('-')? ([0] | [1-9][0-9]*) ('.'[0-9]+)?;
 IDENTIFIER: [A-Za-z\\\-_.]+[A-Za-z0-9\\\-_.]*;
 
 zql
-    :   statement ';' EOF
-    |   statement EOF
+    :   statement EOF
     ;
 
 identifier
@@ -64,118 +63,196 @@ identifier
     |   JSON_WORD
     |   AND_WORD
     |   OR_WORD
-    |   LS_WORD
+    |   LIST_WORD
     ;
 
 statement
-    :   select
+    :   select ';'?
     ;
 
 select
-    :   SELECT_WORD select_expressions (FROM_WORD znodes)? (WHERE_WORD where_conditions)? (GROUP_BY_WORD group_by_expressions)? (HAVING_WORD having_conditions)? (ORDER_BY_WORD order_by_expressions)?
+    :   SELECT_WORD selectExpressions
+        (FROM_WORD znodes)?
+        (WHERE_WORD whereConditions)?
+        (GROUP_BY_WORD groupByExpressions)?
+        (HAVING_WORD havingConditions)?
+        (ORDER_BY_WORD orderByExpressions)?
     ;
 
-select_expressions
-    :   select_expressions ',' select_expressions # SelectExpressionsCommaExpressions
-    |   select_expression # SelectExpressionsBase
+selectExpressions
+    :   selectExpressions ',' selectExpressions # SelectExpressionsComma
+    |   selectExpression # SelectExpressionsBase
     ;
 
-select_expression
-    :   expression_alias # SelectExpressionAlias
-    |   expression_function # SelectExpressionFunction
-    |   expression_aggregate_function # SelectAggregateFunction
-    |   expression_primitive # SelectExpressionPrimitive
-    ;
-
-where_conditions
-    :   where_conditions AND_WORD where_conditions # WhereConditionsAndConditions
-    |   where_conditions OR_WORD where_conditions # WhereConditionsOrConditions
-    |   '(' where_conditions ')' # WhereConditionsInBrackets
-    |   where_condition # WhereConditionsBase
-    ;
-
-where_condition
-    :   where_condition_expression EQUALS where_condition_expression # WhereConditionEquals
-    |   where_condition_expression NOT_EQUALS where_condition_expression # WhereConditionNotEquals
-    |   where_condition_expression LIKE where_condition_expression # WhereConditionLike
-    |   where_condition_expression NOT_LIKE where_condition_expression # WhereConditionNotLike
-    ;
-
-where_condition_expression
-    :   expression_function # WhereConditionExpressionFunction
-    |   expression_primitive # WhereConditionExpressionPrimitive
-    ;
-
-group_by_expressions
-    :   group_by_expressions ',' group_by_expressions # GroupByExpressionsCommaGroupByExpressions
-    |   group_by_expression # GroupByExpressionsBase
-    ;
-
-group_by_expression
-    :   expression_function # GroupByExpressionFunction
-    |   expression_primitive # GroupByExpressionPrimitive
-    ;
-
-having_conditions
-    :   having_conditions AND_WORD having_conditions # HavingConditionsAndConditions
-    |   having_conditions OR_WORD having_conditions # HavingConditionsOrConditions
-    |   '(' having_conditions ')' # HavingConditionsInBrackets
-    |   having_condition # HavingConditionsBase
-    ;
-
-having_condition
-    :   having_condition_expression EQUALS having_condition_expression # HavingConditionEquals
-    |   having_condition_expression NOT_EQUALS having_condition_expression # HavingConditionNotEquals
-    |   having_condition_expression LIKE having_condition_expression # HavingConditionLike
-    |   having_condition_expression NOT_LIKE having_condition_expression # HavingConditionNotLike
-    ;
-
-having_condition_expression
-    :   expression_aggregate_function # HavingConditionExpressionFunction
-    |   expression_primitive # HavingConditionExpressionPrimitive
-    ;
-
-order_by_expressions
-    :   order_by_expressions ',' order_by_expressions # OrderByExpressionsCommaOrderByExpressions
-    |   order_by_expression (ASC_WORD | DESC_WORD)? # OrderByExpressionsBase
-    ;
-
-order_by_expression
-    :   expression_function # OrderByExpressionFunction
-    |   expression_primitive # OrderByExpressionPrimitive
-    ;
-
-expression_alias
-    :   (expression_function | expression_primitive) AS_WORD TEXT # ExpressionAsText
-    |   (expression_function | expression_primitive) (AS_WORD)? identifier # ExpressionAsIdentifier
-    ;
-
-expression_function
-    :   JSON_WORD '(' (expression_function | expression_primitive) ',' (expression_function | expression_primitive) ')' # ExpressionJsonPath
-    ;
-
-expression_aggregate_function
-    :   COUNT_WORD '(' (expression_function | expression_primitive) ')' # ExpressionCount
-    |   SUM_WORD '(' (expression_function | expression_primitive) ')' # ExpressionSum
-    |   AVG_WORD '(' (expression_function | expression_primitive) ')' # ExpressionAvg
-    |   MIN_WORD '(' (expression_function | expression_primitive) ')' # ExpressionMin
-    |   MAX_WORD '(' (expression_function | expression_primitive) ')' # ExpressionMax
-    ;
-
-expression_primitive
-    :   TEXT # ExpressionText
-    |   NUMBER # ExpressionNumber
-    |   identifier # ExpressionIdentifier
+selectExpression
+    :   expressionAlias
+    |   expressionJsonPath
+    |   expressionCount
+    |   expressionSum
+    |   expressionAvg
+    |   expressionMin
+    |   expressionMax
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
     ;
 
 znodes
-    :   znodes ',' znodes # ZnodesCommaZnodes
+    :   znodes ',' znodes # ZnodesComma
     |   znode # ZnodesBase
     ;
 
 znode
-    :   LS_WORD '/' znode # ZnodeList
+    :   LIST_WORD '/' znode # ZnodeList
     |   ('/' identifier?)+ # ZnodePath
+    ;
+
+whereConditions
+    :   whereConditions AND_WORD whereConditions # WhereConditionsAnd
+    |   whereConditions OR_WORD whereConditions # WhereConditionsOr
+    |   '(' whereConditions ')' # WhereConditionsBrackets
+    |   whereCondition # WhereConditionsBase
+    ;
+
+whereCondition
+    :   whereExpressionLeft EQUALS whereExpressionRight # WhereConditionEquals
+    |   whereExpressionLeft NOT_EQUALS whereExpressionRight # WhereConditionNotEquals
+    |   whereExpressionLeft LIKE whereExpressionRight # WhereConditionLike
+    |   whereExpressionLeft NOT_LIKE whereExpressionRight # WhereConditionNotLike
+    ;
+
+whereExpressionLeft
+    :   expressionJsonPath
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
+    ;
+
+whereExpressionRight
+    :   expressionJsonPath
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
+    ;
+
+groupByExpressions
+    :   groupByExpressions ',' groupByExpressions # GroupByExpressionsComma
+    |   groupByExpression # GroupByExpressionsBase
+    ;
+
+groupByExpression
+    :   expressionJsonPath
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
+    ;
+
+havingConditions
+    :   havingConditions AND_WORD havingConditions # HavingConditionsAnd
+    |   havingConditions OR_WORD havingConditions # HavingConditionsOr
+    |   '(' havingConditions ')' # HavingConditionsBrackets
+    |   havingCondition # HavingConditionsBase
+    ;
+
+havingCondition
+    :   havingExpressionLeft EQUALS havingExpressionRight # HavingConditionEquals
+    |   havingExpressionLeft NOT_EQUALS havingExpressionRight # HavingConditionNotEquals
+    |   havingExpressionLeft LIKE havingExpressionRight # HavingConditionLike
+    |   havingExpressionLeft NOT_LIKE havingExpressionRight # HavingConditionNotLike
+    ;
+
+havingExpressionLeft
+    :   expressionCount
+    |   expressionSum
+    |   expressionAvg
+    |   expressionMin
+    |   expressionMax
+    ;
+
+havingExpressionRight
+    :   expressionCount
+    |   expressionSum
+    |   expressionAvg
+    |   expressionMin
+    |   expressionMax
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
+    ;
+
+orderByExpressions
+    :   orderByExpressions ',' orderByExpressions # OrderByExpressionsComma
+    |   orderByExpression # OrderByExpressionsBase
+    ;
+
+orderByExpression
+    :   expressionJsonPath (ASC_WORD | DESC_WORD)?
+    |   expressionNumber (ASC_WORD | DESC_WORD)?
+    |   expressionString (ASC_WORD | DESC_WORD)?
+    |   expressionIdentifier (ASC_WORD | DESC_WORD)?
+    ;
+
+expressionAlias
+    :   expressionJsonPath AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionCount AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionSum AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionAvg AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionMin AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionMax AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionNumber AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionString AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionIdentifier AS_WORD? (expressionString | expressionIdentifier)
+    ;
+
+expressionJsonPath
+    :   JSON_WORD '(' (expressionJsonPath | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionString | expressionIdentifier) ')'
+    ;
+
+expressionCount
+    :   COUNT_WORD '(' expressionJsonPath ')'
+    |   COUNT_WORD '(' expressionNumber ')'
+    |   COUNT_WORD '(' expressionString ')'
+    |   COUNT_WORD '(' expressionIdentifier ')'
+    ;
+
+expressionSum
+    :   SUM_WORD '(' expressionJsonPath ')'
+    |   SUM_WORD '(' expressionNumber ')'
+    |   SUM_WORD '(' expressionString ')'
+    |   SUM_WORD '(' expressionIdentifier ')'
+    ;
+
+expressionAvg
+    :   AVG_WORD '(' expressionJsonPath ')'
+    |   AVG_WORD '(' expressionNumber ')'
+    |   AVG_WORD '(' expressionString ')'
+    |   AVG_WORD '(' expressionIdentifier ')'
+    ;
+
+expressionMin
+    :   MIN_WORD '(' expressionJsonPath ')'
+    |   MIN_WORD '(' expressionNumber ')'
+    |   MIN_WORD '(' expressionString ')'
+    |   MIN_WORD '(' expressionIdentifier ')'
+    ;
+
+expressionMax
+    :   MAX_WORD '(' expressionJsonPath ')'
+    |   MAX_WORD '(' expressionNumber ')'
+    |   MAX_WORD '(' expressionString ')'
+    |   MAX_WORD '(' expressionIdentifier ')'
+    ;
+
+expressionNumber
+    :   NUMBER
+    ;
+
+expressionString
+    :   STRING
+    ;
+
+expressionIdentifier
+    :   identifier
     ;
 
 LINE_COMMENT: '--' ~[\r\n]* -> skip;
