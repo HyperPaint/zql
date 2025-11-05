@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @ToString(callSuper = true)
 public class ExpressionString extends Expression {
@@ -16,17 +18,26 @@ public class ExpressionString extends Expression {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         if (string.contains("\"")) {
             return "'" + string + "'";
         } else {
             return "\"" + string + "\"";
         }
-
     }
 
     @Override
-    public String value(String path, String data) {
+    public Object toValue(String path, String data) {
+        return string;
+    }
+
+    @Override
+    public Object toValue(Object[] row, Map<String, Integer> index) {
+        return string;
+    }
+
+    @Override
+    public String toName() {
         return string;
     }
 }

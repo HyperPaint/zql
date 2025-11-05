@@ -4,10 +4,9 @@ import hyperpaint.zql.lang.ZQL;
 import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.expression.Expression;
-import hyperpaint.zql.lang.expression.ExpressionCollection;
+import hyperpaint.zql.lang.expression.ExpressionWrapper2;
 import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.znode.Znode;
-import hyperpaint.zql.lang.znode.ZnodeCollection;
 import hyperpaint.zql.lang.znode.ZnodePath;
 import hyperpaint.zql.lang.znode.ZnodeWrapper;
 import lombok.NonNull;
@@ -20,7 +19,21 @@ public class PreparedSelect {
     private final ZooKeeper connection;
     private final String query;
 
-    private Select select;
+    private boolean analyzed = false;
+
+    private Expression[] selectExpressions;
+    private ResultSetHeader header;
+
+    private Znode[] fromZnodes;
+
+    private Condition whereCondition;
+
+    private Expression[] groupByExpressions;
+    private boolean[] groups;
+
+    private Condition havingCondition;
+
+    private Expression[] orderByExpressions;
 
     PreparedSelect(@NonNull ZooKeeper connection, @NonNull String query) {
         this.connection = connection;
@@ -28,358 +41,380 @@ public class PreparedSelect {
     }
 
     public ResultSet executeQuery() throws ZQLException {
-        if (select == null) {
-            select = (Select) ZQL.parse(query);
-        }
+        if (!analyzed) {
+            Select select = (Select) ZQL.parse(query);
 
+            // region select exceptions
 
-        final Map<String, Integer> columns = new HashMap<>();
-
-        if (select.hasSelectExpression()) {
-            final List<String> buff = new ArrayList<>();
-
-            processSelectColumns(buff, select.getSelectExpression());
-
-            for (int i = 0; i < buff.size(); i++) {
-                if (columns.containsKey(buff.get(i))) {
-                    throw new ZQLException("Query contains duplicate column names or aliases: " + buff.get(i));
-                }
-
-                columns.put(buff.get(i), i);
+            if (!select.hasSelectExpression() && select.hasFromZnode()) {
+                throw new ZQLException("Statement not contains select expressions but contains from znodes");
             }
 
-            // todo debug
-            System.out.println("columns:");
-            for (var item : columns.entrySet()) {
-                System.out.println(item.getKey() + " -> " + item.getValue());
+            if (!select.hasSelectExpression() && select.hasWhereCondition()) {
+                throw new ZQLException("Statement not contains select expressions but contains where conditions");
             }
+
+            if (!select.hasSelectExpression() && select.hasGroupByExpression()) {
+                throw new ZQLException("Statement not contains select expressions but contains group by expressions");
+            }
+
+            if (!select.hasSelectExpression() && select.hasOrderByExpression()) {
+                throw new ZQLException("Statement not contains select expressions but contains order by expressions");
+            }
+
+            if (!select.hasSelectExpression() && select.hasHavingCondition()) {
+                throw new ZQLException("Statement not contains select expressions but contains having conditions");
+            }
+
+            // endregion
+
+            // region from znode exceptions
+
+            if (!select.hasFromZnode() && select.hasWhereCondition()) {
+                throw new ZQLException("Statement not contains from znode but contains where conditions");
+            }
+
+            if (!select.hasFromZnode() && select.hasGroupByExpression()) {
+                throw new ZQLException("Statement not contains from znode but contains group by expressions");
+            }
+
+            if (!select.hasFromZnode() && select.hasHavingCondition()) {
+                throw new ZQLException("Statement not contains from znode but contains having conditions");
+            }
+
+            if (!select.hasFromZnode() && select.hasOrderByExpression()) {
+                throw new ZQLException("Statement not contains from znode but contains order by expressions");
+            }
+
+            // endregion
+
+            // region group by exceptions
+
+            if (!select.hasGroupByExpression() && select.hasHavingCondition()) {
+                throw new ZQLException("Statement not contains group by expressions but contains having conditions");
+            }
+
+            // endregion
+
+            // region other
+
+            if (select.hasSelectExpression()) {
+                selectExpressions = select.getSelectExpression().toComponents();
+                buildResultSetHeader();
+            }
+
+            if (select.hasFromZnode()) {
+                fromZnodes = select.getFromZnode().toComponents();
+            }
+
+            whereCondition = select.getWhereCondition();
+
+            if (select.hasGroupByExpression()) {
+                groupByExpressions = select.getGroupByExpression().toComponents();
+            }
+
+            analyzeGrouping();
+
+            havingCondition = select.getHavingCondition();
+
+            if (select.hasOrderByExpression()) {
+                orderByExpressions = select.getOrderByExpression().toComponents();
+                analyzeSorting();
+            }
+
+            // endregion
+
+            analyzed = true;
         }
 
-        final Map<String, String> znodes = new HashMap<>();
-
-        if (select.hasFromZnode()) {
-            processFromZnodes(znodes, select.getFromZnode());
-
-            // todo debug
-            System.out.println("znodes:");
-            for (var item : znodes.entrySet()) {
-                System.out.println(item.getKey() + " -> " + item.getValue());
-            }
+        if (selectExpressions == null) {
+            return ping();
         }
 
-        if (select.hasWhereCondition()) {
-            processWhereFilter(znodes, select.getWhereCondition());
+        final Map<String, String> entries = new HashMap<>();
 
-            // todo debug
-            System.out.println("filter:");
-            for (var item : znodes.entrySet()) {
-                System.out.println(item.getKey() + " -> " + item.getValue());
-            }
+        if (fromZnodes != null) {
+            processZnodes(entries);
         }
 
-        final List<Object[]> rows = new ArrayList<>();
+        if (whereCondition != null) {
+            processFiltering(entries);
+        }
 
-//        collectRows(resultSet);
-//        groupRows(resultSet);
+        final List<Object[]> rows = new ArrayList<>(entries.size());
+        processEntriesToRows(entries, rows);
 
-        return new ResultSet(columns, rows);
+        if (groups != null) {
+            processGrouping(rows);
+        }
+
+        if (havingCondition != null) {
+            processFiltering(rows);
+        }
+
+        if (orderByExpressions != null) {
+
+        }
+
+        return new ResultSet(header, rows);
     }
 
-    private void processSelectColumns(List<String> result, Expression expression) throws IllegalArgumentException {
-        switch (expression.getType()) {
-            case COMMA -> {
-                final ExpressionCollection expressionCollection = (ExpressionCollection) expression;
+    private ResultSet ping() {
+        try {
+            connection.exists("/", false);
+        } catch (Exception e) {
+            throw new ZQLException(e);
+        }
 
-                for (var item : expressionCollection.getList()) {
-                    processSelectColumns(result, item);
-                }
+        return ResultSet.EMPTY;
+    }
+
+    private void buildResultSetHeader() throws ZQLException {
+        final String[] columns = new String[selectExpressions.length];
+        final Map<String, Integer> index = new HashMap<>(selectExpressions.length);
+
+        for (int i = 0; i < selectExpressions.length; i++) {
+            if (selectExpressions[i].hasAlias()) {
+                columns[i] = selectExpressions[i].toAlias();
+                index.putIfAbsent(selectExpressions[i].toName(), i);
+            } else {
+                columns[i] = selectExpressions[i].toName();
+                index.putIfAbsent(columns[i], i);
             }
-            case ALIAS, COUNT, SUM, AVG, MIN, MAX, JSON_PATH, STRING, NUMBER, IDENTIFIER -> result.add(expression.text());
-            // case ORDER -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
-            default -> throw new IllegalArgumentException("Unexpected value: " + expression.getType());
+        }
+
+        header = new ResultSetHeader(columns, index);
+    }
+
+    private void analyzeGrouping() {
+        if (Arrays.stream(selectExpressions).allMatch(this::isAggregationFunction)) {
+            if (groupByExpressions != null) {
+                throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
+            }
+
+            groups = new boolean[selectExpressions.length];
+
+            for (int i = 0; i < selectExpressions.length; i++) {
+                groups[i] = false;
+            }
+        } else if (Arrays.stream(selectExpressions).anyMatch(this::isAggregationFunction)) {
+            if (groupByExpressions == null) {
+                throw new ZQLException("Statement not contains group by but contains aggregation functions");
+            }
+
+            final Map<String, Integer> groupsIndex = new HashMap<>(groupByExpressions.length);
+
+            for (int i = 0; i < groupByExpressions.length; i++) {
+                groupsIndex.putIfAbsent(groupByExpressions[i].toName(), i);
+            }
+
+            groups = new boolean[selectExpressions.length];
+
+            for (int i = 0; i < selectExpressions.length; i++) {
+                final String name = selectExpressions[i].toName();
+                final int index = groupsIndex.get(name);
+
+                if (!isAggregationFunction(selectExpressions[i]) && index == -1) {
+                    throw new ZQLException("Statement contains aggregation expression but not contains that expression in group by: " + name);
+                }
+
+                groups[i] = true;
+            }
+
+            for (int i = 0; i < groupByExpressions.length; i++) {
+                final String name = groupByExpressions[i].toName();
+                final int index = header.get(name);
+
+                if (index == -1) {
+                    throw new ZQLException("Statement contains group by expression but not contains that expression in select: " + name);
+                }
+
+                groups[index] = true;
+            }
         }
     }
 
-    private void processFromZnodes(Map<String, String> result, Znode znode) throws IllegalArgumentException, ZQLException {
-        switch (znode.getType()) {
-            case COMMA -> {
-                final ZnodeCollection znodeCollection = (ZnodeCollection) znode;
+    private boolean isAggregationFunction(Expression expression) {
+        return expression.getType() == Expression.Type.COUNT
+                || expression.getType() == Expression.Type.SUM
+                || expression.getType() == Expression.Type.AVG
+                || expression.getType() == Expression.Type.MIN
+                || expression.getType() == Expression.Type.MAX
+                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.COUNT
+                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.SUM
+                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.AVG
+                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.MIN
+                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.MAX;
+    }
 
-                for (var item : znodeCollection.getList()) {
-                    processFromZnodes(result, item);
-                }
-            }
-            case LIST -> {
-                final ZnodeWrapper znodeWrapper = (ZnodeWrapper) znode;
+    private void analyzeSorting() {
 
-                try {
-                    /* Получить изначальный путь и количество ls */
+    }
 
-                    final String path;
+    private void processZnodes(Map<String, String> entries) throws IllegalArgumentException, ZQLException {
+        for (var znode : fromZnodes) {
+            switch (znode.getType()) {
+                case LIST -> {
+                    final ZnodeWrapper znodeWrapper = (ZnodeWrapper) znode;
 
-                    int ls = 1;
-                    Znode wrappedZnode = znodeWrapper.getWrappedZnode();
+                    try {
+                        /* Получить изначальный путь и количество ls */
 
-                    main:
-                    while (true) {
-                        switch (wrappedZnode.getType()) {
-                            case LIST -> {
-                                ls++;
-                                wrappedZnode = ((ZnodeWrapper) wrappedZnode).getWrappedZnode();
-                            }
-                            case PATH -> {
-                                path = ((ZnodePath) wrappedZnode).getPath();
-                                break main;
-                            }
-                            default -> throw new IllegalArgumentException("Unexpected value: " + wrappedZnode.getType());
-                        }
-                    }
+                        final String path;
 
-                    /* Получить znode вместе с данными */
+                        int ls = 1;
+                        Znode wrappedZnode = znodeWrapper.getWrappedZnode();
 
-                    List<String> prev, next = null;
-
-                    for (int i = 0; i < ls; i++) {
-                        /* Корневой znode */
-                        if (i == 0) {
-                            next = connection.getChildren(path, null)
-                                    .stream()
-                                    .map(s -> path.equals("/") ? path + s : path + "/" + s)
-                                    .toList();
-                        }
-
-                        /* Промежуточные znode */
-                        if (i != ls - 1) {
-                            prev = next;
-                            next = new ArrayList<>();
-
-                            for (var item : prev) {
-                                next.addAll(
-                                        connection.getChildren(item, null)
-                                                .stream()
-                                                .map(s -> item.equals("/") ? item + s : item + "/" + s)
-                                                .toList()
-                                );
+                        main:
+                        while (true) {
+                            switch (wrappedZnode.getType()) {
+                                case LIST -> {
+                                    ls++;
+                                    wrappedZnode = ((ZnodeWrapper) wrappedZnode).getWrappedZnode();
+                                }
+                                case PATH -> {
+                                    path = ((ZnodePath) wrappedZnode).getPath();
+                                    break main;
+                                }
+                                default -> throw new IllegalArgumentException("Unexpected value: " + wrappedZnode.getType());
                             }
                         }
 
-                        /* Необходимая глубина znode */
-                        if (i == ls - 1) {
-                            prev = next;
-                            for (var item : prev) {
-                                final boolean exists = connection.exists(item, null) != null;
+                        /* Получить znode вместе с данными */
 
-                                if (exists) {
-                                    final byte[] bytes = connection.getData(item, null, null);
-                                    final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
-                                    result.put(item, data);
+                        List<String> prev, next = null;
+
+                        for (int i = 0; i < ls; i++) {
+                            /* Корневой znode */
+                            if (i == 0) {
+                                next = connection.getChildren(path, null)
+                                        .stream()
+                                        .map(s -> path.equals("/") ? path + s : path + "/" + s)
+                                        .toList();
+                            }
+
+                            /* Промежуточные znode */
+                            if (i != ls - 1) {
+                                prev = next;
+                                next = new ArrayList<>();
+
+                                for (var item : prev) {
+                                    next.addAll(
+                                            connection.getChildren(item, null)
+                                                    .stream()
+                                                    .map(s -> item.equals("/") ? item + s : item + "/" + s)
+                                                    .toList()
+                                    );
+                                }
+                            }
+
+                            /* Необходимая глубина znode */
+                            if (i == ls - 1) {
+                                prev = next;
+                                for (var item : prev) {
+                                    final boolean exists = connection.exists(item, null) != null;
+
+                                    if (exists) {
+                                        final byte[] bytes = connection.getData(item, null, null);
+                                        final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
+                                        entries.put(item, data);
+                                    }
                                 }
                             }
                         }
+                    } catch (Exception e) {
+                        throw new ZQLException(e);
                     }
-                } catch (Exception e) {
-                    throw new ZQLException(e);
                 }
-            }
-            case PATH -> {
-                final ZnodePath znodePath = (ZnodePath) znode;
+                case PATH -> {
+                    final ZnodePath znodePath = (ZnodePath) znode;
 
-                try {
-                    final String path = znodePath.getPath();
-                    final boolean exists = connection.exists(path, null) != null;
+                    try {
+                        final String path = znodePath.getPath();
+                        final boolean exists = connection.exists(path, null) != null;
 
-                    if (exists) {
-                        final byte[] bytes = connection.getData(path, null, null);
-                        final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
-                        result.put(path, data);
+                        if (exists) {
+                            final byte[] bytes = connection.getData(path, null, null);
+                            final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
+                            entries.put(path, data);
+                        }
+                    } catch (Exception e) {
+                        throw new ZQLException(e);
                     }
-                } catch (Exception e) {
-                    throw new ZQLException(e);
                 }
+                default -> throw new IllegalArgumentException("Unexpected value: " + znode.getType());
             }
-            default -> throw new IllegalArgumentException("Unexpected value: " + znode.getType());
         }
     }
 
-    private void processWhereFilter(Map<String, String> result, Condition condition) throws ZQLException {
+    private void processFiltering(Map<String, String> entries) throws ZQLException {
         try {
-            result.entrySet().removeIf(entry -> !condition.value(entry.getKey(), entry.getValue()));
+            entries.entrySet().removeIf(entry -> !whereCondition.toValue(entry.getKey(), entry.getValue()));
         } catch (Exception e) {
             throw new ZQLException(e);
         }
     }
 
-//
-//    private void analyzeAggregation(Expression expression) {
-//        switch (expression.getType()) {
-//            case COMMA -> {
-//                final ExpressionCollection expressionComma = (ExpressionCollection) expression;
-//                expressionComma.getCollection().forEach(this::analyzeAggregation);
-//            }
-//            case ALIAS -> {
-//                final ExpressionAlias selectExpressionAlias = (ExpressionAlias) expression;
-//                analyzeAggregation(expressionAlias.getWrappedExpression());
-//            }
-//            case COUNT -> columnsAggregateFunctions.add(Expression.Type.COUNT);
-//            case SUM -> columnsAggregateFunctions.add(Expression.Type.SUM);
-//            case AVG -> columnsAggregateFunctions.add(Expression.Type.AVG);
-//            case MIN -> columnsAggregateFunctions.add(Expression.Type.MIN);
-//            case MAX -> columnsAggregateFunctions.add(Expression.Type.MAX);
-//            case JSON -> columnsAggregateFunctions.add(Expression.Type.JSON);
-//            case PATH -> columnsAggregateFunctions.add(Expression.Type.PATH);
-//            case DATA -> columnsAggregateFunctions.add(Expression.Type.DATA);
-//            case TEXT -> columnsAggregateFunctions.add(Expression.Type.TEXT);
-//            case NUMBER -> columnsAggregateFunctions.add(Expression.Type.NUMBER);
-//            default -> throw new ZQLException("Unhandled expression type; expression=" + expression);
-//        }
-//    }
-//
+    private void processEntriesToRows(Map<String, String> entries, List<Object[]> rows) {
+        for (var znode : entries.entrySet()) {
+            final Object[] row = new Object[selectExpressions.length];
 
+            for (int i = 0; i < selectExpressions.length; i++) {
+                row[i] = selectExpressions[i].toValue(znode.getKey(), znode.getValue());
+            }
 
-//
-//    private void collectRows(ResultSet resultSet) {
-//        if (select.getExpressions() == null) {
-//            return;
-//        }
-//
-//        try {
-//            resultSet.znodes.forEach((key, value) -> {
-//                final List<String> row = new ArrayList<>();
-//                collectRows(select.getExpressions(), row, key, value);
-//                resultSet.rows.add(row);
-//            });
-//        } catch (Exception e) {
-//            throw new ZQLException("Rows collecting error; query=" + query, e);
-//        }
-//    }
-//
-//    private void collectRows(Expression expression, List<String> row, String path, String data) {
-//        switch (expression.getType()) {
-//            case COMMA -> {
-//                final ExpressionCollection expressionComma = (ExpressionCollection) expression;
-//                expressionComma.getCollection().forEach(e -> collectRows(e, row, path, data));
-//            }
-//            case ALIAS -> {
-//                final ExpressionAlias selectExpressionAlias = (ExpressionAlias) expression;
-//                collectRows(expressionAlias.getWrappedExpression(), row, path, data);
-//            }
-//            case COUNT, SUM, AVG, MIN, MAX -> {
-//                final ExpressionWrapper expressionWrapper = (ExpressionWrapper) expression;
-//                collectRows(expressionWrapper.getWrappedExpression(), row, path, data);
-//            }
-////            case JSON -> {
-////                final Expression expressionJson = (Expression) expression;
-////                row.add(expressionJson.getText());
-////            }
-//            case PATH -> row.add(path);
-//            case DATA -> row.add(data);
-//            case TEXT, NUMBER -> {
-//                final ExpressionString expressionString = (ExpressionString) expression;
-//                row.add(expressionString.getText());
-//            }
-//            default -> throw new ZQLException("Unhandled expression type; expression=" + expression);
-//        }
-//    }
-//
-//    private void groupRows(ResultSet resultSet) {
-//        if (select.getGroups() == null && !isAllColumnsAggregateFunctions) {
-//            return;
-//        }
-//
-//        try {
-//            final Map<String, List<String>> uniqueGroups = new HashMap<>();
-//            final int[] counter = {0};
-//            resultSet.rows.removeIf(row -> {
-//                final StringBuilder stringBuilder = new StringBuilder();
-//
-//                for (int i = 0; i < row.size(); i++) {
-//                    final Expression.Type type = columnsAggregateFunctions.get(i);
-//                    switch (type) {
-//                        case COUNT, SUM, AVG, MIN, MAX -> {
-//                            // ...
-//                        }
-//                        case JSON, PATH, DATA, TEXT, NUMBER -> {
-//                            stringBuilder.append(row.get(i));
-//                        }
-//                        default -> throw new ZQLException("Unhandled expression type; type=" + type);
-//                    }
-//                }
-//
-//                final String group = stringBuilder.toString();
-//                final List<String> groupRow = uniqueGroups.get(group);
-//
-//                boolean result = false;
-//
-//                if (groupRow == null) {
-//                    uniqueGroups.put(group, row);
-//                } else {
-//                    for (int i = 0; i < groupRow.size(); i++) {
-//                        final Expression.Type type = columnsAggregateFunctions.get(i);
-//                        switch (type) {
-//                            case COUNT -> {
-//                                try {
-//                                    final int buff = Integer.parseInt(groupRow.get(i)) + 1;
-//                                    groupRow.set(i, String.valueOf(buff));
-//                                } catch (NumberFormatException e) {
-//                                    // ...
-//                                } finally {
-//                                    result = true;
-//                                }
-//                            }
-//                            case SUM -> {
-//                                try {
-//                                    final float buff = Float.parseFloat(groupRow.get(i)) + Float.parseFloat(row.get(i));
-//                                    groupRow.set(i, String.valueOf(buff));
-//                                } catch (NumberFormatException e) {
-//                                    // ...
-//                                } finally {
-//                                    result = true;
-//                                }
-//                            }
-//                            case AVG -> {
-//                                try {
-//                                    final float groupRowValue = Float.parseFloat(groupRow.get(i));
-//                                    final float value = Float.parseFloat(row.get(i));
-//                                    groupRow.set(i, String.valueOf( groupRowValue + (value - groupRowValue) / (counter[0] + 1)) );
-//                                } catch (NumberFormatException e) {
-//                                    // ...
-//                                } finally {
-//                                    result = true;
-//                                }
-//                            }
-//                            case MIN -> {
-//                                try {
-//                                    final float buff = Math.min(Float.parseFloat(groupRow.get(i)), Float.parseFloat(row.get(i)));
-//                                    groupRow.set(i, String.valueOf(buff));
-//                                } catch (NumberFormatException e) {
-//                                    // ...
-//                                } finally {
-//                                    result = true;
-//                                }
-//                            }
-//                            case MAX -> {
-//                                try {
-//                                    final float buff = Math.max(Float.parseFloat(groupRow.get(i)), Float.parseFloat(row.get(i)));
-//                                    groupRow.set(i, String.valueOf(buff));
-//                                } catch (NumberFormatException e) {
-//                                    // ...
-//                                } finally {
-//                                    result = true;
-//                                }
-//                            }
-//                            case JSON, PATH, DATA, TEXT, NUMBER -> {
-//                                // ...
-//                            }
-//                            default -> throw new ZQLException("Unhandled expression type; type=" + type);
-//                        }
-//                    }
-//                }
-//
-//                counter[0]++;
-//                return result;
-//            });
-//        } catch (Exception e) {
-//            throw new ZQLException("Rows grouping error; query=" + query, e);
-//        }
-//    }
+            rows.add(row);
+        }
+    }
+
+    private void processFiltering(List<Object[]> rows) throws ZQLException {
+        try {
+            rows.removeIf(row -> !havingCondition.toValue(row, header.getColumnsIndex()));
+        } catch (Exception e) {
+            throw new ZQLException(e);
+        }
+    }
+
+    private void processGrouping(List<Object[]> rows) {
+        final Map<String, Object[]> uniqueRows = new HashMap<>();
+
+        rows.removeIf(row -> {
+            final StringBuilder groupBuilder = new StringBuilder();
+
+            for (int i = 0; i < row.length; i++) {
+                if (groups[i]) {
+                    groupBuilder.append(row[i]);
+                }
+            }
+
+            final String group = groupBuilder.toString();
+            final Object[] uniqueRow = uniqueRows.get(group);
+
+            if (uniqueRow == null) {
+                uniqueRows.put(group, row);
+
+                return false;
+            } else {
+                for (int i = 0; i < row.length; i++) {
+                    switch (selectExpressions[i].getType()) {
+                        case COUNT, SUM, AVG, MIN, MAX -> {
+                            if (uniqueRow[i] instanceof Integer) {
+                                uniqueRow[i] = ((int) uniqueRow[i]) + ((int) row[i]);
+                            } else if (uniqueRow[i] instanceof Float) {
+                                uniqueRow[i] = ((float) uniqueRow[i]) + ((float) row[i]);
+                            } else {
+                                throw new IllegalArgumentException("Unexpected value: " + selectExpressions[i].getType());
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            }
+        });
+    }
+
+    private void processSorting(List<Object[]> rows) {
+
+    }
 }

@@ -47,7 +47,6 @@ zql
 identifier
     :   IDENTIFIER
     // Keywords
-    |   LIKE_WORD
     |   SELECT_WORD
     |   FROM_WORD
     |   WHERE_WORD
@@ -55,15 +54,16 @@ identifier
     |   ASC_WORD
     |   DESC_WORD
     |   AS_WORD
+    |   JSON_PATH_WORD
     |   COUNT_WORD
     |   SUM_WORD
     |   AVG_WORD
     |   MIN_WORD
     |   MAX_WORD
-    |   JSON_PATH_WORD
     |   AND_WORD
     |   OR_WORD
     |   LIST_WORD
+    |   LIKE_WORD
     ;
 
 statement
@@ -71,7 +71,7 @@ statement
     ;
 
 select
-    :   SELECT_WORD selectExpressions
+    :   SELECT_WORD selectExpressions?
         (FROM_WORD fromZnodes)?
         (WHERE_WORD whereConditions)?
         (GROUP_BY_WORD groupByExpressions)?

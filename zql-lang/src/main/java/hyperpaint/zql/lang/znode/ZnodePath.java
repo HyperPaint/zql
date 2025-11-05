@@ -16,7 +16,7 @@ public class ZnodePath extends Znode {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         return path;
     }
 }

@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ZQLTest {
+class ZQLLang {
     private static void queryEqualsParseAndCombine(String query) {
-        assertDoesNotThrow(() -> assertEquals(query, ZQL.parse(query).text()));
+        assertDoesNotThrow(() -> assertEquals(query, ZQL.parse(query).toZql()));
     }
 
     @Test
@@ -28,7 +28,7 @@ class ZQLTest {
     @Test
     void selectJsonSemicolon() {
         Select select = (Select) ZQL.parse("select json_path('{\"key\": \"value\"}', '$.key');");
-        assertEquals("value", select.getSelectExpression().value(null, null));
+        assertEquals("value", select.getSelectExpression().toValue((String) null, null));
     }
 
     @Test

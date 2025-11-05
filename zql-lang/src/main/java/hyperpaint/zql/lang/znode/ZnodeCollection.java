@@ -18,12 +18,12 @@ public class ZnodeCollection extends Znode {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         final StringBuilder result = new StringBuilder();
 
-        if (format) {
+        if (formatted) {
             for (var iterator = list.iterator(); iterator.hasNext(); ) {
-                result.append(iterator.next().text());
+                result.append(iterator.next().toZql(true));
 
                 if (iterator.hasNext()) {
                     result.append(",\n");
@@ -31,7 +31,7 @@ public class ZnodeCollection extends Znode {
             }
         } else {
             for (var iterator = list.iterator(); iterator.hasNext(); ) {
-                result.append(iterator.next().text());
+                result.append(iterator.next().toZql(false));
 
                 if (iterator.hasNext()) {
                     result.append(", ");
@@ -39,7 +39,11 @@ public class ZnodeCollection extends Znode {
             }
         }
 
-
         return result.toString();
+    }
+
+    @Override
+    public Znode[] toComponents() {
+        return list.toArray(new Znode[0]);
     }
 }

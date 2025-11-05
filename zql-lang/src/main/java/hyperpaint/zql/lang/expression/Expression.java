@@ -1,16 +1,17 @@
 package hyperpaint.zql.lang.expression;
 
+import hyperpaint.zql.lang.base.Component;
+import hyperpaint.zql.lang.base.ComponentRowToValue;
+import hyperpaint.zql.lang.base.ComponentToName;
+import hyperpaint.zql.lang.base.ComponentEntryToValue;
 import lombok.*;
 
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Expression {
+public abstract class Expression extends Component<Expression> implements ComponentEntryToValue<Object>, ComponentRowToValue<Object>, ComponentToName {
     public enum Type {
         COMMA,
-
-        JSON_PATH,
-        ALIAS,
 
         COUNT,
         SUM,
@@ -18,24 +19,31 @@ public abstract class Expression {
         MIN,
         MAX,
 
+        ALIAS,
+        JSON_PATH,
+
         NUMBER,
         STRING,
         IDENTIFIER,
 
-        ORDER
+        ORDER_BY_ASC,
+        ORDER_BY_DESC
     }
 
     protected final Expression.Type type;
 
-    public final String text() {
-        return text(false);
+    @Override
+    public Expression[] toComponents() {
+        return new Expression[] { this };
     }
 
-    public String text(boolean format) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Override
+    public boolean hasAlias() {
+        return false;
     }
 
-    public Object value(String path, String data) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Override
+    public String toAlias() {
+        return null;
     }
 }

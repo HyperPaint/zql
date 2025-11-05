@@ -61,55 +61,55 @@ public class Select extends Statement {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         final StringBuilder result = new StringBuilder();
 
         if (hasSelectExpression()) {
-            if (format) {
-                result.append("select\n").append(selectExpression.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("select\n").append(selectExpression.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("select ").append(selectExpression.text(format)).append(" ");
+                result.append("select ").append(selectExpression.toZql(false)).append(" ");
             }
 
         }
 
         if (hasFromZnode()) {
-            if (format) {
-                result.append("from\n").append(fromZnode.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("from\n").append(fromZnode.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("from ").append(fromZnode.text(format)).append(" ");
+                result.append("from ").append(fromZnode.toZql(false)).append(" ");
             }
         }
 
         if (hasWhereCondition()) {
-            if (format) {
-                result.append("where\n").append(whereCondition.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("where\n").append(whereCondition.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("where ").append(whereCondition.text(format)).append(" ");
+                result.append("where ").append(whereCondition.toZql(false)).append(" ");
             }
         }
 
         if (hasGroupByExpression()) {
-            if (format) {
-                result.append("group by\n").append(groupByExpression.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("group by\n").append(groupByExpression.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("group by ").append(groupByExpression.text(format)).append(" ");
+                result.append("group by ").append(groupByExpression.toZql(false)).append(" ");
             }
         }
 
         if (hasHavingCondition()) {
-            if (format) {
-                result.append("having\n").append(havingCondition.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("having\n").append(havingCondition.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("having ").append(havingCondition.text(format)).append(" ");
+                result.append("having ").append(havingCondition.toZql(false)).append(" ");
             }
         }
 
         if (hasOrderByExpression()) {
-            if (format) {
-                result.append("order by\n").append(orderByExpression.text(format).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+            if (formatted) {
+                result.append("order by\n").append(orderByExpression.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("order by ").append(orderByExpression.text(format)).append(" ");
+                result.append("order by ").append(orderByExpression.toZql(false)).append(" ");
             }
         }
 

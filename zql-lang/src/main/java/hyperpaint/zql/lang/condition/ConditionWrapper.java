@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @ToString(callSuper = true)
 public class ConditionWrapper extends Condition {
@@ -16,18 +18,20 @@ public class ConditionWrapper extends Condition {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean format) {
         return switch (type) {
-            case BRACKETS -> "(" + wrappedCondition.text() + ")";
+            case BRACKETS -> "(" + wrappedCondition.toZql(format) + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 
     @Override
-    public boolean value(String path, String data) {
-        return switch (type) {
-            case BRACKETS -> wrappedCondition.value(path, data);
-            default -> throw new IllegalArgumentException("Unexpected value: " + type);
-        };
+    public Boolean toValue(String path, String data) {
+        return wrappedCondition.toValue(path, data);
+    }
+
+    @Override
+    public Boolean toValue(Object[] row, Map<String, Integer> index) {
+        return wrappedCondition.toValue(row, index);
     }
 }

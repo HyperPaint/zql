@@ -1,11 +1,15 @@
 package hyperpaint.zql.lang.znode;
 
-import lombok.*;
+import hyperpaint.zql.lang.base.Component;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Znode {
+public abstract class Znode extends Component<Znode> {
     public enum Type {
         COMMA,
 
@@ -16,11 +20,8 @@ public abstract class Znode {
 
     protected final Type type;
 
-    public final String text() {
-        return text(false);
-    }
-
-    public String text(boolean format) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Override
+    public Znode[] toComponents() {
+        return new Znode[] { this };
     }
 }

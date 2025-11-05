@@ -1,11 +1,17 @@
 package hyperpaint.zql.lang.condition;
 
-import lombok.*;
+import hyperpaint.zql.lang.base.Component;
+import hyperpaint.zql.lang.base.ComponentEntryToValue;
+import hyperpaint.zql.lang.base.ComponentRowToValue;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Condition {
+public abstract class Condition extends Component<Condition> implements ComponentEntryToValue<Boolean>, ComponentRowToValue<Boolean> {
     public enum Type {
         AND,
         OR,
@@ -20,15 +26,8 @@ public abstract class Condition {
 
     protected final Condition.Type type;
 
-    public final String text() {
-        return text(false);
-    }
-
-    public String text(boolean format) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    public boolean value(String path, String data) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Override
+    public Condition[] toComponents() {
+        return new Condition[] { this };
     }
 }

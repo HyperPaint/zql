@@ -101,12 +101,10 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
 
     @Override
     public Expression visitOrderByExpression(ZQLParser.OrderByExpressionContext ctx) {
-        if (ctx.ASC_WORD() != null) {
-            return new ExpressionOrderBy(visit(ctx.getChild(0)), true);
-        } else if (ctx.DESC_WORD() != null) {
-            return new ExpressionOrderBy(visit(ctx.getChild(0)), false);
+        if (ctx.DESC_WORD() == null) {
+            return new ExpressionWrapper(Expression.Type.ORDER_BY_ASC, visit(ctx.getChild(0)));
         } else {
-            return new ExpressionOrderBy(visit(ctx.getChild(0)));
+            return new ExpressionWrapper(Expression.Type.ORDER_BY_DESC, visit(ctx.getChild(0)));
         }
     }
 

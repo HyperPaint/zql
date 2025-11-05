@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Getter
@@ -21,23 +22,40 @@ public class ConditionCompositeOfExpression extends Condition {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         return switch (type) {
-            case EQUALS -> left.text() + " == " + right.text();
-            case NOT_EQUALS -> left.text() + " != " + right.text();
-            case LIKE -> left.text() + " =~ " + right.text();
-            case NOT_LIKE -> left.text() + " !~ " + right.text();
+            case EQUALS -> left.toZql(formatted) + " == " + right.toZql(formatted);
+            case NOT_EQUALS -> left.toZql(formatted) + " != " + right.toZql(formatted);
+            case LIKE -> left.toZql(formatted) + " =~ " + right.toZql(formatted);
+            case NOT_LIKE -> left.toZql(formatted) + " !~ " + right.toZql(formatted);
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 
     @Override
-    public boolean value(String path, String data) {
+    public Boolean toValue(String path, String data) {
+        final Object o1 = left.toValue(path, data);
+        final Object o2 = right.toValue(path, data);
+
         return switch (type) {
-            case EQUALS -> Objects.equals(left.value(path, data).toString(), right.value(path, data).toString());
-            case NOT_EQUALS -> !Objects.equals(left.value(path, data).toString(), right.value(path, data).toString());
-            case LIKE -> left.value(path, data).toString().matches(right.value(path, data).toString());
-            case NOT_LIKE -> !left.value(path, data).toString().matches(right.value(path, data).toString());
+            case EQUALS -> Objects.equals(o1, o2);
+            case NOT_EQUALS -> !Objects.equals(o1, o2);
+            case LIKE -> o1.toString().matches(o2.toString());
+            case NOT_LIKE -> !o1.toString().matches(o2.toString());
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
+    public Boolean toValue(Object[] row, Map<String, Integer> index) {
+        final Object o1 = left.toValue(row, index);
+        final Object o2 = right.toValue(row, index);
+
+        return switch (type) {
+            case EQUALS -> Objects.equals(o1, o2);
+            case NOT_EQUALS -> !Objects.equals(o1, o2);
+            case LIKE -> o1.toString().matches(o2.toString());
+            case NOT_LIKE -> !o1.toString().matches(o2.toString());
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

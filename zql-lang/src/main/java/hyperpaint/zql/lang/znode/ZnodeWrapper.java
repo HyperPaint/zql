@@ -16,7 +16,7 @@ public class ZnodeWrapper extends Znode {
     }
 
     @Override
-    public String text(boolean format) {
-        return "ls/" + wrappedZnode.text();
+    public String toZql(boolean formatted) {
+        return "ls/" + wrappedZnode.toZql(formatted);
     }
 }

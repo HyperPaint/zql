@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @ToString(callSuper = true)
 public class ExpressionWrapper extends Expression {
@@ -16,22 +18,41 @@ public class ExpressionWrapper extends Expression {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         return switch (type) {
-            case COUNT -> "count(" + wrappedExpression.text() + ")";
-            case SUM -> "sum(" + wrappedExpression.text() + ")";
-            case AVG -> "avg(" + wrappedExpression.text() + ")";
-            case MIN -> "min(" + wrappedExpression.text() + ")";
-            case MAX -> "max(" + wrappedExpression.text() + ")";
+            case COUNT -> "count(" + wrappedExpression.toZql(formatted) + ")";
+            case SUM -> "sum(" + wrappedExpression.toZql(formatted) + ")";
+            case AVG -> "avg(" + wrappedExpression.toZql(formatted) + ")";
+            case MIN -> "min(" + wrappedExpression.toZql(formatted) + ")";
+            case MAX -> "max(" + wrappedExpression.toZql(formatted) + ")";
+            case ORDER_BY_ASC -> wrappedExpression.toZql(formatted) + " asc";
+            case ORDER_BY_DESC -> wrappedExpression.toZql(formatted) + " desc";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }
 
     @Override
-    public Object value(String path, String data) {
+    public Object toValue(String path, String data) {
         return switch (type) {
-            case COUNT, SUM, AVG, MIN, MAX -> wrappedExpression.value(path, data);
+            case COUNT, SUM, AVG, MIN, MAX -> wrappedExpression.toValue(path, data);
+            // case ORDER_BY_ASC
+            // case ORDER_BY_DESC
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
+    }
+
+    @Override
+    public Object toValue(Object[] row, Map<String, Integer> index) {
+        return switch (type) {
+            case COUNT, SUM, AVG, MIN, MAX -> wrappedExpression.toValue(row, index);
+            // case ORDER_BY_ASC
+            // case ORDER_BY_DESC
+            default -> throw new IllegalArgumentException("Unexpected value: " + type);
+        };
+    }
+
+    @Override
+    public String toName() {
+        return toZql(false);
     }
 }

@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @ToString(callSuper = true)
 public class ExpressionNumber extends Expression {
@@ -28,12 +30,22 @@ public class ExpressionNumber extends Expression {
     }
 
     @Override
-    public String text(boolean format) {
+    public String toZql(boolean formatted) {
         return String.valueOf(number);
     }
 
     @Override
-    public Number value(String path, String data) {
+    public Object toValue(String path, String data) {
         return number;
+    }
+
+    @Override
+    public Object toValue(Object[] row, Map<String, Integer> index) {
+        return number;
+    }
+
+    @Override
+    public String toName() {
+        return String.valueOf(number);
     }
 }
