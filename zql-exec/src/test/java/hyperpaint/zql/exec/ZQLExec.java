@@ -10,7 +10,7 @@ public class ZQLExec {
         final PreparedSelect preparedStatement = connection.prepareStatement("select sum(data) from /, ls//, ls/ls//, ls/ls/ls// where path like '.+/node[0-9]+'");
         final ResultSet resultSet = preparedStatement.executeQuery();
 
-        for (var item : resultSet.getHeader().getColumns()) {
+        for (var item : resultSet.getColumns()) {
             System.out.print(item + "\t");
         }
 

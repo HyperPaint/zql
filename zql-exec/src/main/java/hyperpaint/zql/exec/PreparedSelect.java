@@ -9,7 +9,7 @@ import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.znode.Znode;
 import hyperpaint.zql.lang.znode.ZnodePath;
 import hyperpaint.zql.lang.znode.ZnodeWrapper;
-import lombok.NonNull;
+import lombok.*;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.nio.charset.StandardCharsets;
@@ -17,120 +17,103 @@ import java.util.*;
 
 public class PreparedSelect {
     private final ZooKeeper connection;
-    private final String query;
 
-    private boolean analyzed = false;
+    private final Expression[] selectExpressions;
+    /** Наименования полей */
+    private String[] columnsName;
+    /** Индекс для быстрого доступа к индексу наименования поля по его наименованию */
+    private Map<String, Integer> columnsNameIndex;
 
-    private Expression[] selectExpressions;
-    private ResultSetHeader header;
+    private final Znode[] fromZnodes;
 
-    private Znode[] fromZnodes;
+    private final Condition whereCondition;
 
-    private Condition whereCondition;
+    private final Expression[] groupByExpressions;
+    /** Если для индекса проставлено true, значит каждое уникальное поле с этим индексом образует отдельную группу */
+    private boolean[] columnsGroupingMark;
 
-    private Expression[] groupByExpressions;
-    private boolean[] groups;
+    private final Condition havingCondition;
 
-    private Condition havingCondition;
-
-    private Expression[] orderByExpressions;
+    private final Expression[] orderByExpressions;
 
     PreparedSelect(@NonNull ZooKeeper connection, @NonNull String query) {
         this.connection = connection;
-        this.query = query;
+
+        final Select select = (Select) ZQL.parse(query);
+
+        // region select exceptions
+
+        if (!select.hasSelectExpression() && select.hasFromZnode()) {
+            throw new ZQLException("Statement not contains select expressions but contains from znodes");
+        }
+
+        if (!select.hasSelectExpression() && select.hasWhereCondition()) {
+            throw new ZQLException("Statement not contains select expressions but contains where conditions");
+        }
+
+        if (!select.hasSelectExpression() && select.hasGroupByExpression()) {
+            throw new ZQLException("Statement not contains select expressions but contains group by expressions");
+        }
+
+        if (!select.hasSelectExpression() && select.hasOrderByExpression()) {
+            throw new ZQLException("Statement not contains select expressions but contains order by expressions");
+        }
+
+        if (!select.hasSelectExpression() && select.hasHavingCondition()) {
+            throw new ZQLException("Statement not contains select expressions but contains having conditions");
+        }
+
+        // endregion
+
+        // region from znode exceptions
+
+        if (!select.hasFromZnode() && select.hasWhereCondition()) {
+            throw new ZQLException("Statement not contains from znode but contains where conditions");
+        }
+
+        if (!select.hasFromZnode() && select.hasGroupByExpression()) {
+            throw new ZQLException("Statement not contains from znode but contains group by expressions");
+        }
+
+        if (!select.hasFromZnode() && select.hasHavingCondition()) {
+            throw new ZQLException("Statement not contains from znode but contains having conditions");
+        }
+
+        if (!select.hasFromZnode() && select.hasOrderByExpression()) {
+            throw new ZQLException("Statement not contains from znode but contains order by expressions");
+        }
+
+        // endregion
+
+        // region group by exceptions
+
+        if (!select.hasGroupByExpression() && select.hasHavingCondition()) {
+            throw new ZQLException("Statement not contains group by expressions but contains having conditions");
+        }
+
+        // endregion
+
+        // region other
+
+        selectExpressions = select.hasSelectExpression() ? select.getSelectExpression().toComponents() : null;
+        analyzeSelect();
+
+        fromZnodes = select.hasFromZnode() ? select.getFromZnode().toComponents() : null;
+
+        whereCondition = select.getWhereCondition();
+
+        groupByExpressions = select.hasGroupByExpression() ? select.getGroupByExpression().toComponents() : null;
+        analyzeGrouping();
+
+        havingCondition = select.getHavingCondition();
+
+        orderByExpressions = select.hasOrderByExpression() ? select.getOrderByExpression().toComponents() : null;
+        analyzeSorting();
+
+        // endregion
     }
 
     public ResultSet executeQuery() throws ZQLException {
-        if (!analyzed) {
-            Select select = (Select) ZQL.parse(query);
-
-            // region select exceptions
-
-            if (!select.hasSelectExpression() && select.hasFromZnode()) {
-                throw new ZQLException("Statement not contains select expressions but contains from znodes");
-            }
-
-            if (!select.hasSelectExpression() && select.hasWhereCondition()) {
-                throw new ZQLException("Statement not contains select expressions but contains where conditions");
-            }
-
-            if (!select.hasSelectExpression() && select.hasGroupByExpression()) {
-                throw new ZQLException("Statement not contains select expressions but contains group by expressions");
-            }
-
-            if (!select.hasSelectExpression() && select.hasOrderByExpression()) {
-                throw new ZQLException("Statement not contains select expressions but contains order by expressions");
-            }
-
-            if (!select.hasSelectExpression() && select.hasHavingCondition()) {
-                throw new ZQLException("Statement not contains select expressions but contains having conditions");
-            }
-
-            // endregion
-
-            // region from znode exceptions
-
-            if (!select.hasFromZnode() && select.hasWhereCondition()) {
-                throw new ZQLException("Statement not contains from znode but contains where conditions");
-            }
-
-            if (!select.hasFromZnode() && select.hasGroupByExpression()) {
-                throw new ZQLException("Statement not contains from znode but contains group by expressions");
-            }
-
-            if (!select.hasFromZnode() && select.hasHavingCondition()) {
-                throw new ZQLException("Statement not contains from znode but contains having conditions");
-            }
-
-            if (!select.hasFromZnode() && select.hasOrderByExpression()) {
-                throw new ZQLException("Statement not contains from znode but contains order by expressions");
-            }
-
-            // endregion
-
-            // region group by exceptions
-
-            if (!select.hasGroupByExpression() && select.hasHavingCondition()) {
-                throw new ZQLException("Statement not contains group by expressions but contains having conditions");
-            }
-
-            // endregion
-
-            // region other
-
-            if (select.hasSelectExpression()) {
-                selectExpressions = select.getSelectExpression().toComponents();
-                buildResultSetHeader();
-            }
-
-            if (select.hasFromZnode()) {
-                fromZnodes = select.getFromZnode().toComponents();
-            }
-
-            whereCondition = select.getWhereCondition();
-
-            if (select.hasGroupByExpression()) {
-                groupByExpressions = select.getGroupByExpression().toComponents();
-            }
-
-            analyzeGrouping();
-
-            havingCondition = select.getHavingCondition();
-
-            if (select.hasOrderByExpression()) {
-                orderByExpressions = select.getOrderByExpression().toComponents();
-                analyzeSorting();
-            }
-
-            // endregion
-
-            analyzed = true;
-        }
-
-        if (selectExpressions == null) {
-            return ping();
-        }
-
         final Map<String, String> entries = new HashMap<>();
 
         if (fromZnodes != null) {
@@ -144,7 +127,7 @@ public class PreparedSelect {
         final List<Object[]> rows = new ArrayList<>(entries.size());
         processEntriesToRows(entries, rows);
 
-        if (groups != null) {
+        if (columnsGroupingMark != null) {
             processGrouping(rows);
         }
 
@@ -156,80 +139,69 @@ public class PreparedSelect {
 
         }
 
-        return new ResultSet(header, rows);
+        return new ResultSet(columnsName, columnsNameIndex, rows);
     }
 
-    private ResultSet ping() {
-        try {
-            connection.exists("/", false);
-        } catch (Exception e) {
-            throw new ZQLException(e);
-        }
+    private void analyzeSelect() throws ZQLException {
+        final int size = selectExpressions != null ? selectExpressions.length : 0;
 
-        return ResultSet.EMPTY;
-    }
+        columnsName = new String[size];
+        columnsNameIndex = new HashMap<>(size);
 
-    private void buildResultSetHeader() throws ZQLException {
-        final String[] columns = new String[selectExpressions.length];
-        final Map<String, Integer> index = new HashMap<>(selectExpressions.length);
-
-        for (int i = 0; i < selectExpressions.length; i++) {
+        for (int i = 0; i < size; i++) {
             if (selectExpressions[i].hasAlias()) {
-                columns[i] = selectExpressions[i].toAlias();
-                index.putIfAbsent(selectExpressions[i].toName(), i);
+                columnsName[i] = selectExpressions[i].toAlias();
+                columnsNameIndex.putIfAbsent(selectExpressions[i].toName(), i);
             } else {
-                columns[i] = selectExpressions[i].toName();
-                index.putIfAbsent(columns[i], i);
+                columnsName[i] = selectExpressions[i].toName();
+                columnsNameIndex.putIfAbsent(columnsName[i], i);
             }
         }
-
-        header = new ResultSetHeader(columns, index);
     }
 
     private void analyzeGrouping() {
         if (Arrays.stream(selectExpressions).allMatch(this::isAggregationFunction)) {
-            if (groupByExpressions != null) {
-                throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
-            }
+            /* Все выражения - функции агрегации */
 
-            groups = new boolean[selectExpressions.length];
+            if (groupByExpressions != null) throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
 
-            for (int i = 0; i < selectExpressions.length; i++) {
-                groups[i] = false;
-            }
+            columnsGroupingMark = new boolean[selectExpressions.length];
+            Arrays.fill(columnsGroupingMark, false);
         } else if (Arrays.stream(selectExpressions).anyMatch(this::isAggregationFunction)) {
-            if (groupByExpressions == null) {
-                throw new ZQLException("Statement not contains group by but contains aggregation functions");
-            }
+            /* Одно из выражений - функция агрегации */
+
+            if (groupByExpressions == null) throw new ZQLException("Statement not contains group by but contains aggregation functions");
+
+            columnsGroupingMark = new boolean[selectExpressions.length];
+            Arrays.fill(columnsGroupingMark, false);
 
             final Map<String, Integer> groupsIndex = new HashMap<>(groupByExpressions.length);
-
             for (int i = 0; i < groupByExpressions.length; i++) {
                 groupsIndex.putIfAbsent(groupByExpressions[i].toName(), i);
             }
 
-            groups = new boolean[selectExpressions.length];
-
+            /* Если для выражения в select найдено выражение в group by, отметить поле для группировки */
             for (int i = 0; i < selectExpressions.length; i++) {
-                final String name = selectExpressions[i].toName();
-                final int index = groupsIndex.get(name);
+                final int index = groupsIndex.get(columnsName[i]);
 
+                /* Если выражение в select не функция агрегации и отсутствует в group by, выбросить исключение */
                 if (!isAggregationFunction(selectExpressions[i]) && index == -1) {
-                    throw new ZQLException("Statement contains aggregation expression but not contains that expression in group by: " + name);
+                    throw new ZQLException("Statement contains contains expression in group by: " + columnsName[i]);
                 }
 
-                groups[i] = true;
+                columnsGroupingMark[i] = true;
             }
 
-            for (int i = 0; i < groupByExpressions.length; i++) {
-                final String name = groupByExpressions[i].toName();
-                final int index = header.get(name);
+            /* Если для выражения в group by найдено выражение в select, отметить поле для группировки */
+            for (Expression item : groupByExpressions) {
+                final int index = columnsNameIndex.get(item.toName());
 
+                /* Если выражение в group by отсутствует в select, выбросить исключение */
                 if (index == -1) {
-                    throw new ZQLException("Statement contains group by expression but not contains that expression in select: " + name);
+                    throw new ZQLException("Statement contains group by expression but not contains that expression in select: " + item.toName());
                 }
 
-                groups[index] = true;
+                columnsGroupingMark[index] = true;
             }
         }
     }
@@ -369,47 +341,89 @@ public class PreparedSelect {
 
     private void processFiltering(List<Object[]> rows) throws ZQLException {
         try {
-            rows.removeIf(row -> !havingCondition.toValue(row, header.getColumnsIndex()));
+            rows.removeIf(row -> !havingCondition.toValue(row, columnsNameIndex));
         } catch (Exception e) {
             throw new ZQLException(e);
         }
     }
 
     private void processGrouping(List<Object[]> rows) {
-        final Map<String, Object[]> uniqueRows = new HashMap<>();
+        @Setter
+        class RowWrapper {
+            private @Getter Object[] row;
+            private final boolean[] marks;
 
-        rows.removeIf(row -> {
-            final StringBuilder groupBuilder = new StringBuilder();
-
-            for (int i = 0; i < row.length; i++) {
-                if (groups[i]) {
-                    groupBuilder.append(row[i]);
-                }
+            public RowWrapper(boolean[] marks) {
+                this.marks = marks;
             }
 
-            final String group = groupBuilder.toString();
-            final Object[] uniqueRow = uniqueRows.get(group);
+            public RowWrapper(RowWrapper another) {
+                this.row = another.row;
+                this.marks = another.marks;
+            }
 
-            if (uniqueRow == null) {
-                uniqueRows.put(group, row);
-
-                return false;
-            } else {
+            public void add(RowWrapper another) {
+                final Object[] anotherRow = another.getRow();
                 for (int i = 0; i < row.length; i++) {
                     switch (selectExpressions[i].getType()) {
                         case COUNT, SUM, AVG, MIN, MAX -> {
-                            if (uniqueRow[i] instanceof Integer) {
-                                uniqueRow[i] = ((int) uniqueRow[i]) + ((int) row[i]);
-                            } else if (uniqueRow[i] instanceof Float) {
-                                uniqueRow[i] = ((float) uniqueRow[i]) + ((float) row[i]);
+                            if (row[i] instanceof Integer) {
+                                row[i] = ((int) row[i]) + ((int) anotherRow[i]);
+                            } else if (row[i] instanceof Float) {
+                                row[i] = ((float) row[i]) + ((float) anotherRow[i]);
                             } else {
                                 throw new IllegalArgumentException("Unexpected value: " + selectExpressions[i].getType());
                             }
                         }
                     }
                 }
+            }
 
+            @Override
+            public int hashCode() {
+                int result = 0;
+
+                for (int i = 0; i < marks.length; i++) {
+                    if (marks[i]) {
+                        result += row[i].hashCode();
+                    }
+                }
+
+                return result;
+            }
+
+            @Override
+            public boolean equals(Object object) {
+                if (object instanceof RowWrapper) {
+                    for (int i = 0; i < marks.length; i++) {
+                        if (marks[i]) {
+                            if (!Objects.equals(row[i], ((RowWrapper) object).row[i])) {
+                                return false;
+                            }
+                        }
+                    }
+
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        final Map<RowWrapper, RowWrapper> groups = new HashMap<>();
+        final RowWrapper currentRowWrapper = new RowWrapper(columnsGroupingMark);
+
+        rows.removeIf(row -> {
+            currentRowWrapper.setRow(row);
+
+            RowWrapper uniqueRowWrapper = groups.get(currentRowWrapper);
+            if (uniqueRowWrapper != null) {
+                uniqueRowWrapper.add(currentRowWrapper);
                 return true;
+            } else {
+                uniqueRowWrapper = new RowWrapper(currentRowWrapper);
+                groups.put(uniqueRowWrapper, uniqueRowWrapper);
+                return false;
             }
         });
     }
