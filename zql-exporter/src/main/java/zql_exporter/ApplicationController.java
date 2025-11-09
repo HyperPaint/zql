@@ -1,10 +1,10 @@
 package zql_exporter;
 
-import com.jayway.jsonpath.JsonPath;
-import hyperpaint.zql.exec.PreparedSelect;
+import hyperpaint.zql.exec.ResultSet;
+import hyperpaint.zql.exec.Statement;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.curator.framework.CuratorFramework;
+import org.apache.zookeeper.ZooKeeper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,7 +16,7 @@ import java.util.Arrays;
 @AllArgsConstructor
 public class ApplicationController {
     @Autowired
-    private final CuratorFramework curator;
+    private final ZooKeeper zookeeperConnection;
 
     @GetMapping("/")
     public String index() {
@@ -25,16 +25,11 @@ public class ApplicationController {
 
     @GetMapping("/metrics")
     public String metrics() {
-        final String query = "select path, max(data), min(data) from list('/my') where path like '.*node[0-9].*' group by path";
-        final String json = "{ \"value\":\"1234\" }";
-
-        if (true) {
-            return JsonPath.parse(json).read("$.value");
-        }
+        final String query = "select path, max(data), min(data) from ls//my where path like '.*node[0-9].*' group by path";
 
         try {
-            final var preparedStatement = new PreparedSelect(curator, query);
-            final var resultSet = preparedStatement.execute();
+            final Statement statement = Statement.createStatement(query);
+            final ResultSet resultSet = statement.execute(zookeeperConnection);
             return resultSetToTable(resultSet);
         } catch (Exception e) {
             log.error(e.toString(), e);
@@ -42,21 +37,23 @@ public class ApplicationController {
         }
     }
 
-    private static String resultSetToTable(PreparedSelect.ResultSet resultSet) {
+    private static String resultSetToTable(ResultSet resultSet) {
         final var stringBuilder = new StringBuilder();
 
-        for (var col : resultSet.getColumns()) {
-            stringBuilder.append(col);
-            stringBuilder.append("\t");
+        for (var item : resultSet.getColumns()) {
+            stringBuilder.append(item).append("\t");
         }
+
         stringBuilder.append("\n");
+
         for (var row : resultSet.getRows()) {
-            for (int columnIndex = 0; columnIndex < resultSet.getColumns().size(); columnIndex++) {
-                stringBuilder.append(row.get(columnIndex));
-                stringBuilder.append("\t");
+            for (var item : row) {
+                stringBuilder.append(item).append("\t");
             }
+
             stringBuilder.append("\n");
         }
+
         return stringBuilder.toString();
     }
 }

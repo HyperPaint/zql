@@ -11,5 +11,6 @@ import java.util.Map;
 public class ResultSet {
     private String[] columns;
     private Map<String, Integer> columnsIndex;
+
     private final List<Object[]> rows;
 }

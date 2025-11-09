@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     implementation project(":zql-lang")
+    implementation project(":zql-exec")
 
     // Spring
     implementation "org.springframework.boot:spring-boot-starter:${spring_version}"
@@ -24,6 +25,9 @@ dependencies {
     testCompileOnly "org.projectlombok:lombok:${lombok_version}"
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
+
+    // ZooKeeper
+    implementation "org.apache.zookeeper:zookeeper:${zookeeper_version}"
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"

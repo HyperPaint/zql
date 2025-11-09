@@ -1,6 +1,5 @@
 package hyperpaint.zql.exec;
 
-import hyperpaint.zql.lang.ZQL;
 import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.expression.Expression;
@@ -10,43 +9,36 @@ import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.znode.Znode;
 import hyperpaint.zql.lang.znode.ZnodePath;
 import hyperpaint.zql.lang.znode.ZnodeWrapper;
-import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Setter;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.IntStream;
 
-public class PreparedSelect {
-    private final ZooKeeper connection;
-
+public class SelectStatement implements Statement {
     private final Expression[] selectExpressions;
-    /** Количество полей */
-    private int columnsLength;
+    private final Znode[] fromZnodes;
+    private final Condition whereCondition;
+    private final Expression[] groupByExpressions;
+    private final Condition havingCondition;
+    private final Expression[] orderByExpressions;
+
     /** Наименования полей */
     private String[] columnsName;
-    /** Индекс для быстрого доступа к индексу наименования поля по его наименованию */
+    /** Индексы наименований полей */
     private Map<String, Integer> columnsNameIndex;
 
-    private final Znode[] fromZnodes;
+    /** Индексы группировки полей */
+    private int[] groupingIndex;
+    /** Типы выражений в полях */
+    private Expression.Type[] columnsType;
 
-    private final Condition whereCondition;
-
-    private final Expression[] groupByExpressions;
-    /** Если для индекса проставлено true, значит каждое уникальное поле с этим индексом образует отдельную группу */
-    private boolean[] columnsGroupingMark;
-
-    private final Condition havingCondition;
-
-    private final Expression[] orderByExpressions;
+    /** Компаратор для сортировки */
     private Comparator<Object[]> sortingComparator;
 
-    PreparedSelect(@NonNull ZooKeeper connection, @NonNull String query) {
-        this.connection = connection;
-
-        final Select select = (Select) ZQL.parse(query);
-
+    SelectStatement(@NonNull Select select) {
         // region select exceptions
 
         if (!select.hasSelectExpression() && select.hasFromZnode()) {
@@ -99,7 +91,7 @@ public class PreparedSelect {
 
         // endregion
 
-        // region other
+        // region analyze
 
         selectExpressions = select.hasSelectExpression() ? select.getSelectExpression().toComponents() : null;
         analyzeSelect();
@@ -119,42 +111,29 @@ public class PreparedSelect {
         // endregion
     }
 
-    public ResultSet executeQuery() throws ZQLException {
-        final Map<String, String> entries = new HashMap<>();
+    public ResultSet execute(ZooKeeper connection) throws ZQLException {
+        final Map<String, String> entries = fromZnodes != null ? processZnodes(connection) : new HashMap<>();
+        final List<Object[]> rows = processEntriesToRows(entries);
 
-        if (fromZnodes != null) {
-            processZnodes(entries);
-        }
+        if (whereCondition != null) processFiltering(rows, whereCondition);
+        if (groupingIndex != null) processGrouping(rows);
+        if (havingCondition != null) processFiltering(rows, havingCondition);
+        if (sortingComparator != null) processSorting(rows);
 
-        if (whereCondition != null) {
-            processFiltering(entries);
-        }
-
-        final List<Object[]> rows = new ArrayList<>(entries.size());
-        processEntriesToRows(entries, rows);
-
-        if (columnsGroupingMark != null) {
-            processGrouping(rows);
-        }
-
-        if (havingCondition != null) {
-            processFiltering(rows);
-        }
-
-        if (sortingComparator != null) {
-            processSorting(rows);
-        }
 
         return new ResultSet(columnsName, columnsNameIndex, rows);
     }
 
     private void analyzeSelect() throws ZQLException {
-        columnsLength = selectExpressions != null ? selectExpressions.length : 0;
+        final int columnsCount = selectExpressions != null ? selectExpressions.length : 0;
 
-        columnsName = new String[columnsLength];
-        columnsNameIndex = new HashMap<>(columnsLength);
+        columnsType = new Expression.Type[columnsCount];
+        columnsName = new String[columnsCount];
+        columnsNameIndex = new HashMap<>(columnsCount);
 
-        for (int i = 0; i < columnsLength; i++) {
+        for (int i = 0; i < columnsCount; i++) {
+            columnsType[i] = selectExpressions[i].getType() == Expression.Type.ALIAS ? ((ExpressionWrapper2) selectExpressions[i]).getWrappedExpression1().getType() : selectExpressions[i].getType();
+
             if (selectExpressions[i].hasAlias()) {
                 columnsName[i] = selectExpressions[i].toAlias();
                 columnsNameIndex.putIfAbsent(selectExpressions[i].toName(), i);
@@ -166,49 +145,62 @@ public class PreparedSelect {
     }
 
     private void analyzeGrouping() {
+        final int groupingExpressionsCount = groupByExpressions != null ? groupByExpressions.length : 0;
+
         if (Arrays.stream(selectExpressions).allMatch(this::isAggregationFunction)) {
             /* Все выражения - функции агрегации */
 
-            if (groupByExpressions != null) throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
+            if (groupingExpressionsCount > 0) {
+                throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
+            }
 
-            columnsGroupingMark = new boolean[columnsLength];
-            Arrays.fill(columnsGroupingMark, false);
+            groupingIndex = new int[0];
         } else if (Arrays.stream(selectExpressions).anyMatch(this::isAggregationFunction)) {
-            /* Одно из выражений - функция агрегации */
+            /* Как минимум одно, но не все выражения - функции агрегации */
 
-            if (groupByExpressions == null) throw new ZQLException("Statement not contains group by but contains aggregation functions");
-
-            columnsGroupingMark = new boolean[columnsLength];
-            Arrays.fill(columnsGroupingMark, false);
-
-            final Map<String, Integer> groupsIndex = new HashMap<>(groupByExpressions.length);
-            for (int i = 0; i < groupByExpressions.length; i++) {
-                groupsIndex.putIfAbsent(groupByExpressions[i].toName(), i);
+            if (groupByExpressions == null) {
+                throw new ZQLException("Statement contains aggregation function but not contains group by");
             }
 
-            /* Если для выражения в select найдено выражение в group by, отметить поле для группировки */
-            for (int i = 0; i < columnsLength; i++) {
-                final int index = groupsIndex.get(columnsName[i]);
+            /* Подготовить имена выражений и индекс */
+            final String[] gropingExpressionsName = new String[groupingExpressionsCount];
+            final Map<String, Integer> groupingExpressionsNameIndex = new HashMap<>(groupingExpressionsCount);
 
-                /* Если выражение в select не функция агрегации и отсутствует в group by, выбросить исключение */
-                if (!isAggregationFunction(selectExpressions[i]) && index == -1) {
-                    throw new ZQLException("Statement contains contains expression in group by: " + columnsName[i]);
-                }
-
-                columnsGroupingMark[i] = true;
+            for (int i = 0; i < groupingExpressionsCount; i++) {
+                gropingExpressionsName[i] = groupByExpressions[i].toName();
+                groupingExpressionsNameIndex.putIfAbsent(gropingExpressionsName[i], i);
             }
 
-            /* Если для выражения в group by найдено выражение в select, отметить поле для группировки */
-            for (Expression item : groupByExpressions) {
-                final int index = columnsNameIndex.get(item.toName());
+            groupingIndex = new int[groupingExpressionsCount];
 
-                /* Если выражение в group by отсутствует в select, выбросить исключение */
+            /* Проверить что все выражения из group by присутствуют в select */
+            for (int i = 0; i < groupingExpressionsCount; i++) {
+                final int index = columnsNameIndex.getOrDefault(gropingExpressionsName[i], -1);
+
                 if (index == -1) {
-                    throw new ZQLException("Statement contains group by expression but not contains that expression in select: " + item.toName());
+                    throw new ZQLException("Statement contains %s expression in grouping but not contains that expression in select".formatted(gropingExpressionsName[i]));
                 }
 
-                columnsGroupingMark[index] = true;
+                /* Отметить поле для группировки */
+                groupingIndex[i] = index;
             }
+
+            /* Проверить что все выражения, кроме функций агрегации, в select присутствуют в group by */
+            for (int i = 0; i < columnsName.length; i++) {
+                if (isAggregationFunction(selectExpressions[i])) {
+                    continue;
+                }
+
+                final int index = groupingExpressionsNameIndex.getOrDefault(columnsName[i], -1);
+
+                if (index == -1) {
+                    throw new ZQLException("Statement contains %s expression in select but not contains that expression in grouping".formatted(columnsName[i]));
+                }
+            }
+        } else {
+            /* Все выражения - не функции агрегации */
+
+            groupingIndex = null;
         }
     }
 
@@ -226,7 +218,7 @@ public class PreparedSelect {
     }
 
     private void analyzeSorting() {
-        int sortingColumnsLength = orderByExpressions != null ? orderByExpressions.length : 0;
+        final int sortingColumnsLength = orderByExpressions != null ? orderByExpressions.length : 0;
 
         Comparator<Object[]> buff;
 
@@ -292,7 +284,9 @@ public class PreparedSelect {
         };
     }
 
-    private void processZnodes(Map<String, String> entries) throws IllegalArgumentException, ZQLException {
+    private Map<String, String> processZnodes(ZooKeeper connection) throws IllegalArgumentException, ZQLException {
+        final Map<String, String> entries = new HashMap<>();
+
         for (var znode : fromZnodes) {
             switch (znode.getType()) {
                 case LIST -> {
@@ -386,115 +380,173 @@ public class PreparedSelect {
                 default -> throw new IllegalArgumentException("Unexpected value: " + znode.getType());
             }
         }
+
+        return entries;
     }
 
-    private void processFiltering(Map<String, String> entries) throws ZQLException {
-        try {
-            entries.entrySet().removeIf(entry -> !whereCondition.toValue(entry.getKey(), entry.getValue()));
-        } catch (Exception e) {
-            throw new ZQLException(e);
-        }
-    }
+    private List<Object[]> processEntriesToRows(Map<String, String> entries) {
+        final List<Object[]> rows = new ArrayList<>();
 
-    private void processEntriesToRows(Map<String, String> entries, List<Object[]> rows) {
         for (var znode : entries.entrySet()) {
-            final Object[] row = new Object[columnsLength];
+            final Object[] row = new Object[columnsName.length];
 
-            for (int i = 0; i < columnsLength; i++) {
+            for (int i = 0; i < columnsName.length; i++) {
                 row[i] = selectExpressions[i].toValue(znode.getKey(), znode.getValue());
             }
 
             rows.add(row);
         }
-    }
 
-    private void processFiltering(List<Object[]> rows) throws ZQLException {
-        try {
-            rows.removeIf(row -> !havingCondition.toValue(row, columnsNameIndex));
-        } catch (Exception e) {
-            throw new ZQLException(e);
-        }
+        return rows;
     }
 
     private void processGrouping(List<Object[]> rows) {
-        @Setter
-        class RowWrapper {
-            private @Getter Object[] row;
-            private final boolean[] marks;
+        @NoArgsConstructor
+        class Wrapper {
+            private Object[] row;
+            private int consumed = 0;
 
-            public RowWrapper(boolean[] marks) {
-                this.marks = marks;
+            public Wrapper(Object[] row) {
+                this.row = row;
             }
 
-            public RowWrapper(RowWrapper another) {
-                this.row = another.row;
-                this.marks = another.marks;
-            }
+            public void consume(Wrapper another) {
+                final Object[] anotherRow = another.row;
 
-            public void add(RowWrapper another) {
-                final Object[] anotherRow = another.getRow();
                 for (int i = 0; i < row.length; i++) {
-                    switch (selectExpressions[i].getType()) {
-                        case COUNT, SUM, AVG, MIN, MAX -> {
-                            if (row[i] instanceof Integer) {
-                                row[i] = ((int) row[i]) + ((int) anotherRow[i]);
-                            } else if (row[i] instanceof Float) {
-                                row[i] = ((float) row[i]) + ((float) anotherRow[i]);
+                    switch (columnsType[i]) {
+                        case COUNT -> {
+                            if (row[i] instanceof Integer value) {
+                                row[i] = value + 1;
                             } else {
-                                throw new IllegalArgumentException("Unexpected value: " + selectExpressions[i].getType());
+                                // todo exception
+                            }
+                        }
+                        case SUM -> {
+                            if (row[i] instanceof Integer value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = value1 + value2;
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = value1 + value2;
+                                } else {
+                                    // todo exception
+                                }
+                            } else if (row[i] instanceof Float value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = value1 + value2;
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = value1 + value2;
+                                } else {
+                                    // todo exception
+                                }
+                            } else {
+                                // todo exception
+                            }
+                        }
+                        case AVG -> {
+                            if (row[i] instanceof Integer value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
+                                } else {
+                                    // todo exception
+                                }
+                            } else if (row[i] instanceof Float value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
+                                } else {
+                                    // todo exception
+                                }
+                            } else {
+                                // todo exception
+                            }
+                        }
+                        case MIN -> {
+                            if (row[i] instanceof Integer value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = Math.min(value1, value2);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = Math.min(value1, value2);
+                                } else {
+                                    // todo exception
+                                }
+                            } else if (row[i] instanceof Float value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = Math.min(value1, value2);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = Math.min(value1, value2);
+                                } else {
+                                    // todo exception
+                                }
+                            } else {
+                                // todo exception
+                            }
+                        }
+                        case MAX -> {
+                            if (row[i] instanceof Integer value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = Math.max(value1, value2);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = Math.max(value1, value2);
+                                } else {
+                                    // todo exception
+                                }
+                            } else if (row[i] instanceof Float value1) {
+                                if (anotherRow[i] instanceof Integer value2) {
+                                    row[i] = Math.max(value1, value2);
+                                } else if (anotherRow[i] instanceof Float value2) {
+                                    row[i] = Math.max(value1, value2);
+                                } else {
+                                    // todo exception
+                                }
+                            } else {
+                                // todo exception
                             }
                         }
                     }
                 }
+
+                consumed++;
             }
 
             @Override
             public int hashCode() {
-                int result = 0;
-
-                for (int i = 0; i < marks.length; i++) {
-                    if (marks[i]) {
-                        result += row[i].hashCode();
-                    }
-                }
-
-                return result;
+                return IntStream.range(0, groupingIndex.length).map(i -> row[i].hashCode()).sum();
             }
 
             @Override
             public boolean equals(Object object) {
-                if (object instanceof RowWrapper) {
-                    for (int i = 0; i < marks.length; i++) {
-                        if (marks[i]) {
-                            if (!Objects.equals(row[i], ((RowWrapper) object).row[i])) {
-                                return false;
-                            }
-                        }
-                    }
-
-                    return true;
-                } else {
-                    return false;
-                }
+                return object instanceof Wrapper wrapper && IntStream.range(0, groupingIndex.length).allMatch(i -> Objects.equals(row[i], wrapper.row[i]));
             }
         }
 
-        final Map<RowWrapper, RowWrapper> groups = new HashMap<>();
-        final RowWrapper currentRowWrapper = new RowWrapper(columnsGroupingMark);
+        final Map<Wrapper, Wrapper> groups = new HashMap<>();
+        final Wrapper current = new Wrapper();
 
         rows.removeIf(row -> {
-            currentRowWrapper.setRow(row);
+            current.row = row;
 
-            RowWrapper uniqueRowWrapper = groups.get(currentRowWrapper);
-            if (uniqueRowWrapper != null) {
-                uniqueRowWrapper.add(currentRowWrapper);
+            Wrapper buff = groups.get(current);
+            if (buff != null) {
+                buff.consume(current);
                 return true;
             } else {
-                uniqueRowWrapper = new RowWrapper(currentRowWrapper);
-                groups.put(uniqueRowWrapper, uniqueRowWrapper);
+                buff = new Wrapper(current.row);
+                groups.put(buff, buff);
                 return false;
             }
         });
+    }
+
+    private void processFiltering(List<Object[]> rows, Condition condition) throws ZQLException {
+        try {
+            rows.removeIf(row -> !condition.toValue(row, columnsNameIndex));
+        } catch (Exception e) {
+            throw new ZQLException(e);
+        }
     }
 
     private void processSorting(List<Object[]> rows) {
