@@ -4,12 +4,15 @@ import hyperpaint.zql.lang.ZQL;
 import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.expression.Expression;
+import hyperpaint.zql.lang.expression.ExpressionWrapper;
 import hyperpaint.zql.lang.expression.ExpressionWrapper2;
 import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.znode.Znode;
 import hyperpaint.zql.lang.znode.ZnodePath;
 import hyperpaint.zql.lang.znode.ZnodeWrapper;
-import lombok.*;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.nio.charset.StandardCharsets;
@@ -19,6 +22,8 @@ public class PreparedSelect {
     private final ZooKeeper connection;
 
     private final Expression[] selectExpressions;
+    /** Количество полей */
+    private int columnsLength;
     /** Наименования полей */
     private String[] columnsName;
     /** Индекс для быстрого доступа к индексу наименования поля по его наименованию */
@@ -35,6 +40,7 @@ public class PreparedSelect {
     private final Condition havingCondition;
 
     private final Expression[] orderByExpressions;
+    private Comparator<Object[]> sortingComparator;
 
     PreparedSelect(@NonNull ZooKeeper connection, @NonNull String query) {
         this.connection = connection;
@@ -135,20 +141,20 @@ public class PreparedSelect {
             processFiltering(rows);
         }
 
-        if (orderByExpressions != null) {
-
+        if (sortingComparator != null) {
+            processSorting(rows);
         }
 
         return new ResultSet(columnsName, columnsNameIndex, rows);
     }
 
     private void analyzeSelect() throws ZQLException {
-        final int size = selectExpressions != null ? selectExpressions.length : 0;
+        columnsLength = selectExpressions != null ? selectExpressions.length : 0;
 
-        columnsName = new String[size];
-        columnsNameIndex = new HashMap<>(size);
+        columnsName = new String[columnsLength];
+        columnsNameIndex = new HashMap<>(columnsLength);
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < columnsLength; i++) {
             if (selectExpressions[i].hasAlias()) {
                 columnsName[i] = selectExpressions[i].toAlias();
                 columnsNameIndex.putIfAbsent(selectExpressions[i].toName(), i);
@@ -165,14 +171,14 @@ public class PreparedSelect {
 
             if (groupByExpressions != null) throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
 
-            columnsGroupingMark = new boolean[selectExpressions.length];
+            columnsGroupingMark = new boolean[columnsLength];
             Arrays.fill(columnsGroupingMark, false);
         } else if (Arrays.stream(selectExpressions).anyMatch(this::isAggregationFunction)) {
             /* Одно из выражений - функция агрегации */
 
             if (groupByExpressions == null) throw new ZQLException("Statement not contains group by but contains aggregation functions");
 
-            columnsGroupingMark = new boolean[selectExpressions.length];
+            columnsGroupingMark = new boolean[columnsLength];
             Arrays.fill(columnsGroupingMark, false);
 
             final Map<String, Integer> groupsIndex = new HashMap<>(groupByExpressions.length);
@@ -181,7 +187,7 @@ public class PreparedSelect {
             }
 
             /* Если для выражения в select найдено выражение в group by, отметить поле для группировки */
-            for (int i = 0; i < selectExpressions.length; i++) {
+            for (int i = 0; i < columnsLength; i++) {
                 final int index = groupsIndex.get(columnsName[i]);
 
                 /* Если выражение в select не функция агрегации и отсутствует в group by, выбросить исключение */
@@ -220,7 +226,70 @@ public class PreparedSelect {
     }
 
     private void analyzeSorting() {
+        int sortingColumnsLength = orderByExpressions != null ? orderByExpressions.length : 0;
 
+        Comparator<Object[]> buff;
+
+        for (int i = 0; i < sortingColumnsLength; i++) {
+            switch (orderByExpressions[i].getType()) {
+                case ORDER_BY_ASC -> {
+                    final ExpressionWrapper expressionWrapper = (ExpressionWrapper) orderByExpressions[i];
+                    final int index = columnsNameIndex.getOrDefault(expressionWrapper.getWrappedExpression().toName(), -1);
+
+                    if (index == -1) {
+                        throw new ZQLException("order by contains non-exist expression");
+                    }
+
+                    buff = analyzeSortingGetComparator(index);
+                }
+                case ORDER_BY_DESC -> {
+                    final ExpressionWrapper expressionWrapper = (ExpressionWrapper) orderByExpressions[i];
+                    final int index = columnsNameIndex.getOrDefault(expressionWrapper.getWrappedExpression().toName(), -1);
+
+                    if (index == -1) {
+                        throw new ZQLException("order by contains non-exist expression");
+                    }
+
+                    buff = analyzeSortingGetComparator(index).reversed();
+                }
+                default -> throw new ZQLException("order by incorrect");
+            }
+
+            sortingComparator = sortingComparator != null ? sortingComparator.thenComparing(buff) : buff;
+        }
+    }
+
+    private Comparator<Object[]> analyzeSortingGetComparator(int index) {
+        return (first, second) -> {
+            if (first[index] != null) {
+                if (second[index] != null) {
+                    return switch (first[index]) {
+                        // int
+                        case Integer int1 when second[index] instanceof Integer int2 -> Integer.compare(int1, int2);
+                        case Integer int1 when second[index] instanceof Float float2 -> Float.compare(int1, float2);
+                        case Integer ignored1 when second[index] instanceof String ignored2 -> -1; // string в конец
+                        // float
+                        case Float float1 when second[index] instanceof Integer int2 -> Float.compare(float1, int2);
+                        case Float float1 when second[index] instanceof Float float2 -> Float.compare(float1, float2);
+                        case Float ignored1 when second[index] instanceof String ignored2 -> -1; // string в конец
+                        // string
+                        case String ignored1 when second[index] instanceof Integer ignored2 -> 1; // string в конец
+                        case String ignored1 when second[index] instanceof Float ignored2 -> 1; // string в конец
+                        case String string1 when second[index] instanceof String string2 -> string1.compareTo(string2);
+                        // default
+                        default -> 0;
+                    };
+                } else {
+                    return -1; // null в конец
+                }
+            } else {
+                if (second[index] != null) {
+                    return 1; // null в конец
+                } else {
+                    return 0;
+                }
+            }
+        };
     }
 
     private void processZnodes(Map<String, String> entries) throws IllegalArgumentException, ZQLException {
@@ -329,9 +398,9 @@ public class PreparedSelect {
 
     private void processEntriesToRows(Map<String, String> entries, List<Object[]> rows) {
         for (var znode : entries.entrySet()) {
-            final Object[] row = new Object[selectExpressions.length];
+            final Object[] row = new Object[columnsLength];
 
-            for (int i = 0; i < selectExpressions.length; i++) {
+            for (int i = 0; i < columnsLength; i++) {
                 row[i] = selectExpressions[i].toValue(znode.getKey(), znode.getValue());
             }
 
@@ -429,6 +498,6 @@ public class PreparedSelect {
     }
 
     private void processSorting(List<Object[]> rows) {
-
+        rows.sort(sortingComparator);
     }
 }

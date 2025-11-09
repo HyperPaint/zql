@@ -7,7 +7,7 @@ public class ZQLExec {
     void run() {
         final ZooKeeperConnectionPool connectionPool = new ZooKeeperConnectionPool("127.0.0.1:2181");
         final ZooKeeperConnection connection = connectionPool.getConnection();
-        final PreparedSelect preparedStatement = connection.prepareStatement("select sum(data) from /, ls//, ls/ls//, ls/ls/ls// where path like '.+/node[0-9]+'");
+        final PreparedSelect preparedStatement = connection.prepareStatement("select path, data from /, ls//, ls/ls//, ls/ls/ls// order by data");
         final ResultSet resultSet = preparedStatement.executeQuery();
 
         for (var item : resultSet.getColumns()) {
