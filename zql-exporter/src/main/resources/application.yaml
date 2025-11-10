@@ -1,26 +1,20 @@
-zookeeper-exporter:
+zql-exporter:
   zookeeper:
-    connectionString: 127.0.0.1:2181
-    retryPolicy:
-      sleepTimeMilliseconds: 100
-      maxRetries: 3
+    host: 127.0.0.1
+    port: 2181
+    timeout: 10000
+    ssl:
+      enabled: false
+      # Не обязательны при enabled: false
+      key-store-location: keystore.jks
+      key-store-password: password
+      trust-store-location: truststore.jks
+      trust-store-password: password
+      hostname-verification: true
   exporter:
     listen: 0.0.0.0:9141
     metrics:
-      - |
-        json (
-          get (
-            list (/path/to/znode) like (textRegex)
-          ) labels (
-            textPathRegex
-          )
-        ) value (
-          textQuery
-        ) labels (
-          queryLabel1,
-          queryLabel2,
-          queryLabel3
-        );
+
 
 # get (znode)
 # get (znode) labels (regex)

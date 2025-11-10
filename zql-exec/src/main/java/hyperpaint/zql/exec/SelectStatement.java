@@ -220,9 +220,9 @@ public class SelectStatement implements Statement {
     private void analyzeSorting() {
         final int sortingColumnsLength = orderByExpressions != null ? orderByExpressions.length : 0;
 
-        Comparator<Object[]> buff;
-
         for (int i = 0; i < sortingColumnsLength; i++) {
+            final Comparator<Object[]> buff;
+
             switch (orderByExpressions[i].getType()) {
                 case ORDER_BY_ASC -> {
                     final ExpressionWrapper expressionWrapper = (ExpressionWrapper) orderByExpressions[i];
