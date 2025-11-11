@@ -26,8 +26,8 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
-    // ZooKeeper
-    implementation "org.apache.zookeeper:zookeeper:${zookeeper_version}"
+    // Curator
+    implementation "org.apache.curator:curator-framework:${curator_version}"
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"

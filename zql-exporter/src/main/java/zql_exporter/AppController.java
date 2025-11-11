@@ -2,9 +2,9 @@ package zql_exporter;
 
 import hyperpaint.zql.exec.ResultSet;
 import hyperpaint.zql.exec.Statement;
-import hyperpaint.zql.lang.ZQLException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,26 +14,20 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
+@RequiredArgsConstructor
 @RestController
 public class AppController {
     private final Object zookeeperLock = new Object();
 
-    private final ObjectFactory<ZooKeeper> zookeeperFactory;
+    private final CuratorFramework curator;
     private final ObjectFactory<Socket> zookeeperMonitoringSocketFactory;
 
-    private volatile ZooKeeper zookeeper;
-    private int reconnectionAttempt = 0;
-
-    public AppController(ObjectFactory<ZooKeeper> zookeeperFactory, ObjectFactory<Socket> zookeeperMonitoringSocketFactory) {
-        this.zookeeperFactory = zookeeperFactory;
-        this.zookeeperMonitoringSocketFactory = zookeeperMonitoringSocketFactory;
-
-        this.zookeeper = zookeeperFactory.getObject();
-    }
+    private final boolean secretEnabled;
+    private final String secretValue;
 
     @GetMapping("/")
     public String index() {
@@ -41,110 +35,158 @@ public class AppController {
     }
 
     @GetMapping("/query")
-    public ResponseEntity<String> query(@RequestParam String query, @RequestParam(required = false) String output) {
+    public ResponseEntity<String> query(
+            @RequestParam(required = false) String secret,
+            @RequestParam String query
+    ) {
         try {
-            final var resultSet = queryHandle(query);
+            final var checkSecret = checkSecret(secret);
+            if (checkSecret != null) return checkSecret;
+
+            final var resultSet = queryExec(query);
             final var stringBuilder = new StringBuilder();
 
-            if (Objects.equals(output, "table")) {
-                for (var column : resultSet.getColumns()) {
-                    stringBuilder.append(column).append("\t");
+            for (var column : resultSet.getColumns()) {
+                stringBuilder.append(column).append("\t");
+            }
+
+            stringBuilder.append("\n");
+
+            for (var row : resultSet.getRows()) {
+                for (var item : row) {
+                    stringBuilder.append(item).append("\t");
                 }
 
                 stringBuilder.append("\n");
-
-                for (var row : resultSet.getRows()) {
-                    for (var item : row) {
-                        stringBuilder.append(item).append("\t");
-                    }
-
-                    stringBuilder.append("\n");
-                }
-
-                return ResponseEntity.status(200).body(stringBuilder.toString());
-            } else if (Objects.equals(output, "metrics")) {
-                return ResponseEntity.status(501).build();
-            } else {
-                return ResponseEntity.status(200).build();
             }
+
+            return ResponseEntity.status(200).body(stringBuilder.toString());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
 
-    private ResultSet queryHandle(String query) throws IllegalStateException, ZQLException {
-        /* Переподключить если не подключен */
-        if (!zookeeper.getState().isAlive()) {
-            synchronized (zookeeperLock) {
-                if (!zookeeper.getState().isAlive()) {
-                    log.error("Connection state to zookeeper is {}", zookeeper.getState());
-
-                    log.warn("Zookeeper reconnection attempt #{}", ++reconnectionAttempt);
-                    zookeeper = zookeeperFactory.getObject();
-
-                    log.warn("Connection state to zookeeper is {}", zookeeper.getState());
-                }
-            }
+    private ResultSet queryExec(String query) throws Exception {
+        if (isZookeeperLeader()) {
+            final Statement statement = Statement.createStatement(query);
+            return statement.execute(curator.getZookeeperClient().getZooKeeper());
+        } else {
+            throw new IllegalStateException("ZooKeeper is not leader");
         }
-
-        /* Обработать запрос если подключен */
-        if (zookeeper.getState().isConnected()) {
-            synchronized (zookeeperLock) {
-                if (zookeeper.getState().isConnected()) {
-                    if (isZookeeperLeader()) {
-                        final Statement statement = Statement.createStatement(query);
-                        return statement.execute(zookeeper);
-                    } else {
-                        throw new IllegalStateException("ZooKeeper is not leader");
-                    }
-                }
-            }
-        }
-
-        throw new IllegalStateException("Zookeeper is not connected");
     }
 
-    private boolean isZookeeperLeader() {
-        return socketHandle("stat")
+    @GetMapping("/metrics")
+    public ResponseEntity<String> metrics(
+            @RequestParam(required = false) String secret
+    ) {
+        try {
+            final var checkSecret = checkSecret(secret);
+            if (checkSecret != null) return checkSecret;
+
+            final var result = socketExec(COMMAND_MNTR)
+                    .lines()
+                    .map(s -> {
+                        final int delimiterIndex = s.indexOf("\t");
+                        if (delimiterIndex != -1) {
+                            String key = s.substring(0, delimiterIndex);
+                            if (key.startsWith("zk_")) {
+                                key = "zookeeper_" + key.substring(3);
+                            }
+
+                            final String value = s.substring(delimiterIndex + 1);
+
+                            try {
+                                // Отображения как число (в корректном формате)
+                                return "# TYPE zql_%s gauge\nzql_%s %s".formatted(key, key, String.valueOf(Float.parseFloat(value)));
+                            } catch (NumberFormatException ignored) {
+                                // Отобразить как метку
+                                return "# TYPE zql_%s gauge\nzql_%s{value=\"%s\"} 1.0".formatted(key, key, value);
+                            }
+                        } else {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.joining("\n"));
+
+            return ResponseEntity.status(200).body(result);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    /// New in 3.3.0: Print details about serving configuration.
+    private static final byte[] COMMAND_CONF = "conf".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: List full connection/session details for all clients connected to this server. Includes information on numbers of packets received/sent, session id, operation latencies, last operation performed, etc...
+    private static final byte[] COMMAND_CONS = "cons".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: Reset connection/session statistics for all connections.
+    private static final byte[] COMMAND_CRST = "crst".getBytes(StandardCharsets.UTF_8);
+    /// Lists the outstanding sessions and ephemeral nodes. This only works on the leader.
+    private static final byte[] COMMAND_DUMP = "dump".getBytes(StandardCharsets.UTF_8);
+    /// Print details about serving environment
+    private static final byte[] COMMAND_ENVI = "envi".getBytes(StandardCharsets.UTF_8);
+    /// Tests if server is running in a non-error state. The server will respond with imok if it is running. Otherwise, it will not respond at all.
+    private static final byte[] COMMAND_RUOK = "ruok".getBytes(StandardCharsets.UTF_8);
+    /// Reset server statistics.
+    private static final byte[] COMMAND_SRST = "srst".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: Lists full details for the server.
+    private static final byte[] COMMAND_SRVR = "srvr".getBytes(StandardCharsets.UTF_8);
+    /// Lists brief details for the server and connected clients.
+    private static final byte[] COMMAND_STAT = "stat".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: Lists brief information on watches for the server.
+    private static final byte[] COMMAND_WCHS = "wchs".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: Lists detailed information on watches for the server, by session. This outputs a list of sessions(connections) with associated watches (paths). Note, depending on the number of watches this operation may be expensive (ie impact server performance), use it carefully.
+    private static final byte[] COMMAND_WCHC = "wchc".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.3.0: Lists detailed information on watches for the server, by path. This outputs a list of paths (znodes) with associated sessions. Note, depending on the number of watches this operation may be expensive (ie impact server performance), use it carefully.
+    private static final byte[] COMMAND_WCHP = "wchp".getBytes(StandardCharsets.UTF_8);
+    /// New in 3.4.0: Outputs a list of variables that could be used for monitoring the health of the cluster.
+    private static final byte[] COMMAND_MNTR = "mntr".getBytes(StandardCharsets.UTF_8);
+
+    private String socketExec(byte[] command) throws IOException {
+        final Socket zookeeperMonitoringSocket = zookeeperMonitoringSocketFactory.getObject();
+
+        try (zookeeperMonitoringSocket) {
+            zookeeperMonitoringSocket.getOutputStream().write(command);
+            zookeeperMonitoringSocket.getOutputStream().flush();
+            final byte[] result = zookeeperMonitoringSocket.getInputStream().readAllBytes();
+            return new String(result, StandardCharsets.UTF_8);
+        }
+    }
+
+    private ResponseEntity<String> checkSecret(String secret) {
+        if (secretEnabled) {
+            if (Objects.isNull(secret)) {
+                return ResponseEntity.status(401).build();
+            }
+
+            if (!Objects.equals(secretValue, secret)) {
+                return ResponseEntity.status(403).build();
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isZookeeperLeader() throws IOException {
+        return socketExec(COMMAND_STAT)
+                .toLowerCase()
                 .lines()
-                .filter(s -> s.startsWith("Mode: "))
-                .findAny()
+                .filter(s -> s.startsWith("mode: "))
+                .findFirst()
                 .map(s ->
                         switch (s.substring(6)) {
                             case "leader", "standalone" -> true;
                             case "follower" -> false;
                             default -> {
-                                log.warn("ZooKeeper mode is unknown: {}", s.substring(6));
-                                yield  false;
+                                log.warn("ZooKeeper mode is unknown in response to stat command: {}", s.substring(6));
+                                yield false;
                             }
                         }
                 ).orElseGet(() -> {
-                    log.warn("Zookeeper mode is not found");
+                    log.warn("Zookeeper mode is not found in response to stat command");
                     return false;
                 });
-    }
-
-    @GetMapping("/socket")
-    public ResponseEntity<String> socket(@RequestParam String command) {
-        try {
-            return ResponseEntity.status(200).body(socketHandle(command));
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return ResponseEntity.status(500).body(e.getMessage());
-        }
-    }
-
-    private String socketHandle(String command) {
-        final Socket zookeeperMonitoringSocket = zookeeperMonitoringSocketFactory.getObject();
-
-        try (zookeeperMonitoringSocket) {
-            zookeeperMonitoringSocket.getOutputStream().write("%s\r\n".formatted(command).getBytes(StandardCharsets.UTF_8));
-            zookeeperMonitoringSocket.getOutputStream().flush();
-            return new String(zookeeperMonitoringSocket.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.error(e.toString(), e);
-            return e + "\n" + Arrays.toString(e.getStackTrace());
-        }
     }
 }

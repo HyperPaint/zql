@@ -1,6 +1,7 @@
 package zql_exporter;
 
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -24,8 +25,13 @@ public class Config {
     }
 
     @Bean
-    public int zookeeperTimeout(Environment environment) throws IllegalStateException, NumberFormatException {
-        return Integer.parseInt(environment.getProperty("zql-exporter.zookeeper.timeout", "10000"));
+    public int zookeeperSessionTimeout(Environment environment) throws IllegalStateException, NumberFormatException {
+        return Integer.parseInt(environment.getProperty("zql-exporter.zookeeper.timeout.session", "10000"));
+    }
+
+    @Bean
+    public int zooKeeperConnectionTimeout(Environment environment) throws IllegalStateException, NumberFormatException {
+        return Integer.parseInt(environment.getProperty("zql-exporter.zookeeper.timeout.connection", "10000"));
     }
 
     @Bean
@@ -59,11 +65,11 @@ public class Config {
     }
 
     @Bean
-    @Scope("prototype")
-    public ZooKeeper zookeeper(
+    public CuratorFramework curator(
             String zookeeperHost,
             int zookeeperPort,
-            int zookeeperTimeout,
+            int zookeeperSessionTimeout,
+            int zooKeeperConnectionTimeout,
             boolean zookeeperSslEnabled,
             String zookeeperSslKeyStoreLocation,
             String zookeeperSslKeyStorePassword,
@@ -86,7 +92,14 @@ public class Config {
             System.setProperty("zookeeper.ssl.hostnameVerification", String.valueOf(zookeeperSslHostnameVerification));
         }
 
-        return new ZooKeeper(zookeeperHost + ":" + zookeeperPort, zookeeperTimeout, null);
+        var curator = CuratorFrameworkFactory.newClient(
+                zookeeperHost + ":" + zookeeperPort,
+                zookeeperSessionTimeout,
+                zooKeeperConnectionTimeout,
+                (retryCount, elapsedTimeMs, sleeper) -> false
+        );
+        curator.start();
+        return curator;
     }
 
     @Bean
@@ -94,7 +107,8 @@ public class Config {
     public Socket zookeeperMonitoringSocket(
             String zookeeperHost,
             int zookeeperPort,
-            int zookeeperTimeout,
+            int zookeeperSessionTimeout,
+            int zooKeeperConnectionTimeout,
             boolean zookeeperSslEnabled,
             String zookeeperSslKeyStoreLocation,
             String zookeeperSslKeyStorePassword,
@@ -123,11 +137,19 @@ public class Config {
             socket = new Socket();
         }
 
-        socket.setSoLinger(true, zookeeperTimeout);
-        socket.setSoTimeout(zookeeperTimeout);
-        socket.setKeepAlive(true);
-        socket.connect(new InetSocketAddress(zookeeperHost, zookeeperPort), zookeeperTimeout);
+        socket.setSoTimeout(zookeeperSessionTimeout);
+        socket.connect(new InetSocketAddress(zookeeperHost, zookeeperPort), zooKeeperConnectionTimeout);
 
         return socket;
+    }
+
+    @Bean
+    public boolean secretEnabled(Environment environment) {
+        return Boolean.parseBoolean(environment.getProperty("zql-exporter.zookeeper.secret.enabled", "false"));
+    }
+
+    @Bean
+    public String secretValue(Environment environment) {
+        return environment.getProperty("zql-exporter.zookeeper.secret.value", "password");
     }
 }
