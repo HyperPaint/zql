@@ -1,5 +1,6 @@
 package hyperpaint.zql.exec;
 
+import hyperpaint.zql.exec.select.SelectStatement;
 import hyperpaint.zql.lang.ZQL;
 import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.statement.Select;
