@@ -9,9 +9,9 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Expression extends Component<Expression> {
+public abstract class Expression extends Component {
     public enum Type {
-        COMMA,
+        COLLECTION,
 
         COUNT,
         SUM,

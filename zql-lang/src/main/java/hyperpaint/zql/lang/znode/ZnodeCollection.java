@@ -12,7 +12,7 @@ public class ZnodeCollection extends Znode {
     private final List<Znode> list;
 
     public ZnodeCollection(@NonNull List<Znode> list) {
-        super(Type.COMMA);
+        super(Type.COLLECTION);
 
         this.list = list;
     }

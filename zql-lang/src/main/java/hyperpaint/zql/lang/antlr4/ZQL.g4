@@ -38,7 +38,7 @@ LIST_WORD: 'list' | 'ls';
 
 STRING: [']~[']*['] | ["]~["]*["];
 NUMBER: ('-')? ([0] | [1-9][0-9]*) ('.'[0-9]+)?;
-IDENTIFIER: [A-Za-z\\\-_.]+[A-Za-z0-9\\\-_.]*;
+IDENTIFIER: [A-Za-z\-_.\\]+[A-Za-z0-9\-_.\\]*;
 
 zql
     :   statement EOF
@@ -103,9 +103,26 @@ fromZnodes
     ;
 
 znode
-    :   LIST_WORD '/' znode # ZnodeList
-    |   ('/' identifier?)+ # ZnodePath
+    :   znodeList
+    |   znodePath
+    |   znodeRoot
     ;
+
+znodeList
+    :   LIST_WORD '/' znodeList
+    |   LIST_WORD znodePath
+    |   LIST_WORD znodeRoot
+    ;
+
+znodePath
+    :   znodePath '/' identifier
+    |   znodeRoot identifier
+    ;
+
+znodeRoot
+    :   '/'
+    ;
+
 
 whereConditions
     :   whereConditions AND_WORD whereConditions # WhereConditionsAnd

@@ -6,17 +6,17 @@ import lombok.ToString;
 
 @Getter
 @ToString(callSuper = true)
-public class ZnodeWrapper extends Znode {
+public class ZnodeList extends Znode {
     private final Znode wrappedZnode;
 
-    public ZnodeWrapper(@NonNull Znode.Type type, @NonNull Znode znode) {
-        super(type);
+    public ZnodeList(@NonNull Znode znode) {
+        super(Type.LIST);
 
         this.wrappedZnode = znode;
     }
 
     @Override
     public String toZql(boolean formatted) {
-        return "ls/" + wrappedZnode.toZql(formatted);
+        return wrappedZnode.getType() == Type.LIST ? "ls/" + wrappedZnode.toZql(formatted) : "ls" + wrappedZnode.toZql(formatted);
     }
 }

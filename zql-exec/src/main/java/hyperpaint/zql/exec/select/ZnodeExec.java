@@ -3,7 +3,7 @@ package hyperpaint.zql.exec.select;
 import hyperpaint.zql.lang.znode.Znode;
 import hyperpaint.zql.lang.znode.ZnodeCollection;
 import hyperpaint.zql.lang.znode.ZnodePath;
-import hyperpaint.zql.lang.znode.ZnodeWrapper;
+import hyperpaint.zql.lang.znode.ZnodeList;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 
@@ -47,7 +47,7 @@ public class ZnodeExec {
 
                 return entries;
             }};
-            case ZnodeWrapper znodeWrapper -> znodeToEntry = new ZnodeToEntry[]{zooKeeper -> {
+            case ZnodeList znodeList -> znodeToEntry = new ZnodeToEntry[]{zooKeeper -> {
                 final Map<String, String> entries = new HashMap<>();
 
                 /* Получить изначальный путь и количество ls */
@@ -55,14 +55,14 @@ public class ZnodeExec {
                 final String path;
 
                 int ls = 1;
-                Znode buffZnode = znodeWrapper.getWrappedZnode();
+                Znode buffZnode = znodeList.getWrappedZnode();
 
                 main:
                 while (true) {
                     switch (buffZnode.getType()) {
                         case LIST -> {
                             ls++;
-                            buffZnode = ((ZnodeWrapper) buffZnode).getWrappedZnode();
+                            buffZnode = ((ZnodeList) buffZnode).getWrappedZnode();
                         }
                         case PATH -> {
                             path = ((ZnodePath) buffZnode).getPath();

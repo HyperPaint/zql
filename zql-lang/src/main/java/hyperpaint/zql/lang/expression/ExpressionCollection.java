@@ -12,7 +12,7 @@ public class ExpressionCollection extends Expression {
     private final List<Expression> list;
 
     public ExpressionCollection(@NonNull List<Expression> list) {
-        super(Type.COMMA);
+        super(Type.COLLECTION);
 
         this.list = list;
     }

@@ -18,16 +18,16 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
         final Expression left = visit(parseTree.getChild(0));
         final Expression right = visit(parseTree.getChild(2));
 
-        if (left.getType() == Expression.Type.COMMA && right.getType() == Expression.Type.COMMA) {
+        if (left.getType() == Expression.Type.COLLECTION && right.getType() == Expression.Type.COLLECTION) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
             leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
-        } else if (left.getType() == Expression.Type.COMMA) {
+        } else if (left.getType() == Expression.Type.COLLECTION) {
             final ExpressionCollection leftCollection = (ExpressionCollection) left;
             leftCollection.getList().add(right);
             return leftCollection;
-        } else if (right.getType() == Expression.Type.COMMA) {
+        } else if (right.getType() == Expression.Type.COLLECTION) {
             final ExpressionCollection rightCollection = (ExpressionCollection) right;
             rightCollection.getList().add(left);
             return rightCollection;

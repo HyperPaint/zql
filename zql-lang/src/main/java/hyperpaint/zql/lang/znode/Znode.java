@@ -9,12 +9,11 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Znode extends Component<Znode> {
+public abstract class Znode extends Component {
     public enum Type {
-        COMMA,
+        COLLECTION,
 
         LIST,
-
         PATH
     }
 

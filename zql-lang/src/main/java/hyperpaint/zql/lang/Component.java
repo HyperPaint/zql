@@ -1,6 +1,6 @@
 package hyperpaint.zql.lang;
 
-public abstract class Component<T> {
+public abstract class Component {
     public final String toZql() {
         return toZql(false);
     }

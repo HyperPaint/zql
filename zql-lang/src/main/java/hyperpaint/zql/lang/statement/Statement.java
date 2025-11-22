@@ -9,7 +9,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Statement extends Component<Statement> {
+public abstract class Statement extends Component {
     public enum Type {
         SELECT
     }

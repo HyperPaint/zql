@@ -3,7 +3,7 @@ package hyperpaint.zql.exec;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.Test;
 
-public class ZQLExec {
+public class ZQLExecTest {
     @Test
     void run() {
         try (ZooKeeper connection = new ZooKeeper("127.0.0.1:2181", 86400000, null)) {

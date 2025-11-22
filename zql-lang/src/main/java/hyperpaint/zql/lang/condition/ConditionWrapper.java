@@ -17,6 +17,7 @@ public class ConditionWrapper extends Condition {
 
     @Override
     public String toZql(boolean formatted) {
+        //noinspection SwitchStatementWithTooFewBranches
         return switch (type) {
             case BRACKETS -> "(" + wrappedCondition.toZql(formatted) + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);

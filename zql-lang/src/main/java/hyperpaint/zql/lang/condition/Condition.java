@@ -9,7 +9,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Condition extends Component<Condition> {
+public abstract class Condition extends Component {
     public enum Type {
         AND,
         OR,

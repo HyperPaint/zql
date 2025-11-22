@@ -21,7 +21,7 @@ public class ExpressionWrapper2 extends Expression {
     public String toZql(boolean formatted) {
         return switch (type) {
             case ALIAS -> wrappedExpression1.toZql(formatted) + " as " + wrappedExpression2.toZql(formatted);
-            case JSON_PATH -> "json(" + wrappedExpression1.toZql(formatted) + ", " + wrappedExpression2.toZql(formatted) + ")";
+            case JSON_PATH -> "json_path(" + wrappedExpression1.toZql(formatted) + ", " + wrappedExpression2.toZql(formatted) + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

@@ -1,11 +1,6 @@
 package hyperpaint.zql.lang;
 
-// todo not runtime
-public class ZQLException extends RuntimeException {
-    public ZQLException() {
-        super();
-    }
-
+public class ZQLException extends Exception {
     public ZQLException(String message) {
         super(message);
     }
