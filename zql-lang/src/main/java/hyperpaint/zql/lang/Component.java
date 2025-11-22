@@ -1,4 +1,4 @@
-package hyperpaint.zql.lang.base;
+package hyperpaint.zql.lang;
 
 public abstract class Component<T> {
     public final String toZql() {
@@ -10,6 +10,4 @@ public abstract class Component<T> {
     }
 
     public abstract String toZql(boolean formatted);
-
-    public abstract T[] toComponents();
 }

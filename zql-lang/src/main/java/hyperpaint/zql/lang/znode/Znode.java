@@ -1,6 +1,6 @@
 package hyperpaint.zql.lang.znode;
 
-import hyperpaint.zql.lang.base.Component;
+import hyperpaint.zql.lang.Component;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,8 +20,4 @@ public abstract class Znode extends Component<Znode> {
 
     protected final Type type;
 
-    @Override
-    public Znode[] toComponents() {
-        return new Znode[] { this };
-    }
 }

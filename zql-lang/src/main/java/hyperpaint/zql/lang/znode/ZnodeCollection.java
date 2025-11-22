@@ -42,8 +42,4 @@ public class ZnodeCollection extends Znode {
         return result.toString();
     }
 
-    @Override
-    public Znode[] toComponents() {
-        return list.toArray(new Znode[0]);
-    }
 }

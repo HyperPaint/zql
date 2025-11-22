@@ -5,12 +5,10 @@ import hyperpaint.zql.exec.Statement;
 import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.expression.*;
 import hyperpaint.zql.lang.statement.Select;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.util.*;
-import java.util.stream.IntStream;
 
 public class SelectStatement implements Statement {
     private final ExpressionExec expressionExec;
@@ -20,431 +18,249 @@ public class SelectStatement implements Statement {
     private final FilteringExec havingFilteringExec;
     private final SortingExec sortingExec;
 
-    /**
-     * Наименования полей
-     */
-    private String[] columnsName;
-    /**
-     * Индексы наименований полей
-     */
-    private Map<String, Integer> columnsNameIndex;
+    /** Наименования полей */
+    private String[] columnNames;
+    /** Индексы наименований полей */
+    private Map<String, Integer> columnNameIndexes;
 
-    /**
-     * Тип группировки в полях
-     */
-    private Expression.Type[] columnsGroupingType;
-    /**
-     * Позиции типов группировки полей
-     */
-    private int[] columnsGroupingTypePosition;
+    /** Тип группировки в полях */
+    private GroupingType[] columnGroupingTypes;
 
-    SelectStatement(@NonNull Select select) {
-        // region select exceptions
+    /** Тип сортировки в полях */
+    private SortingType[] columnSortingTypes;
 
-        if (!select.hasSelectExpression() && select.hasFromZnode()) {
-            throw new ZQLException("Statement not contains select expressions but contains from znodes");
-        }
+    /** Ошибки возникшие во время исполнения */
+    private final List<Exception> exceptions = new LinkedList<>();
 
-        if (!select.hasSelectExpression() && select.hasWhereCondition()) {
-            throw new ZQLException("Statement not contains select expressions but contains where conditions");
-        }
-
-        if (!select.hasSelectExpression() && select.hasGroupByExpression()) {
-            throw new ZQLException("Statement not contains select expressions but contains group by expressions");
-        }
-
-        if (!select.hasSelectExpression() && select.hasOrderByExpression()) {
-            throw new ZQLException("Statement not contains select expressions but contains order by expressions");
-        }
-
-        if (!select.hasSelectExpression() && select.hasHavingCondition()) {
-            throw new ZQLException("Statement not contains select expressions but contains having conditions");
-        }
-
-        // endregion
-
-        // region from znode exceptions
-
-        if (!select.hasFromZnode() && select.hasWhereCondition()) {
-            throw new ZQLException("Statement not contains from znode but contains where conditions");
-        }
-
-        if (!select.hasFromZnode() && select.hasGroupByExpression()) {
-            throw new ZQLException("Statement not contains from znode but contains group by expressions");
-        }
-
-        if (!select.hasFromZnode() && select.hasHavingCondition()) {
-            throw new ZQLException("Statement not contains from znode but contains having conditions");
-        }
-
-        if (!select.hasFromZnode() && select.hasOrderByExpression()) {
-            throw new ZQLException("Statement not contains from znode but contains order by expressions");
-        }
-
-        // endregion
-
-        // region group by exceptions
-
-        if (!select.hasGroupByExpression() && select.hasHavingCondition()) {
-            throw new ZQLException("Statement not contains group by expressions but contains having conditions");
-        }
-
-        // endregion
-
-        // region analyze
+    public SelectStatement(@NonNull Select select) throws ZQLException {
+        analyze(select);
 
         expressionExec = new ExpressionExec(select.getSelectExpression());
-        analyzeSelectExpression(select.getSelectExpression());
         znodeExec = new ZnodeExec(select.getFromZnode());
         whereFilteringExec = new FilteringExec(select.getWhereCondition());
-        groupByExpressions = select.hasGroupByExpression() ? select.getGroupByExpression().toComponents() : null;
-        analyzeGroupingExpression();
+        groupingExec = new GroupingExec(columnGroupingTypes, exceptions);
         havingFilteringExec = new FilteringExec(select.getHavingCondition());
-        sortingExec = new SortingExec(select.getOrderByExpression(), columnsNameIndex);
-
-        // endregion
+        sortingExec = new SortingExec(columnSortingTypes);
     }
 
+    @Override
     public ResultSet execute(ZooKeeper zookeeper) throws ZQLException {
         try {
+            exceptions.clear();
+
             final var entries = znodeExec.znodesToEntries(zookeeper);
             whereFilteringExec.execute(entries);
             final var rows = expressionExec.entriesToRows(entries);
-
-            if (columnsGroupingTypePosition != null) {
-                processGrouping(rows);
-            }
-
-            havingFilteringExec.execute(rows, columnsNameIndex);
+            groupingExec.execute(rows);
+            havingFilteringExec.execute(rows, columnNameIndexes);
             sortingExec.execute(rows);
 
-            return new ResultSet(columnsName, columnsNameIndex, rows);
+            return new ResultSet(columnNames, columnNameIndexes, rows);
         } catch (Exception e) {
             throw new ZQLException(e);
         }
     }
 
-    private void analyzeSelectExpression(Expression selectExpression) throws ZQLException {
-        if (selectExpression == null) {
-            columnsName = new String[0];
-            columnsNameIndex = new HashMap<>(0);
-            return;
+    private void analyze(Select select) throws ZQLException {
+        // Проверка при отсутствии select
+        if (!select.hasSelectExpression() && select.hasFromZnode()) {
+            throw new ZQLException("Select statement not contains select expressions but contains from znodes");
         }
 
-        final List<Expression> list;
+        if (!select.hasSelectExpression() && select.hasWhereCondition()) {
+            throw new ZQLException("Select statement not contains select expressions but contains where conditions");
+        }
 
-        if (selectExpression instanceof ExpressionCollection expressionCollection) {
-            list = expressionCollection.getList();
+        if (!select.hasSelectExpression() && select.hasGroupByExpression()) {
+            throw new ZQLException("Select statement not contains select expressions but contains group by expressions");
+        }
+
+        if (!select.hasSelectExpression() && select.hasOrderByExpression()) {
+            throw new ZQLException("Select statement not contains select expressions but contains order by expressions");
+        }
+
+        if (!select.hasSelectExpression() && select.hasHavingCondition()) {
+            throw new ZQLException("Select statement not contains select expressions but contains having conditions");
+        }
+
+        // Проверка при отсутствии znode
+        if (!select.hasFromZnode() && select.hasWhereCondition()) {
+            throw new ZQLException("Select statement not contains from znode but contains where conditions");
+        }
+
+        if (!select.hasFromZnode() && select.hasGroupByExpression()) {
+            throw new ZQLException("Select statement not contains from znode but contains group by expressions");
+        }
+
+        if (!select.hasFromZnode() && select.hasHavingCondition()) {
+            throw new ZQLException("Select statement not contains from znode but contains having conditions");
+        }
+
+        if (!select.hasFromZnode() && select.hasOrderByExpression()) {
+            throw new ZQLException("Select statement not contains from znode but contains order by expressions");
+        }
+
+        // Проверка при отсутствии группировки
+        if (!select.hasGroupByExpression() && select.hasHavingCondition()) {
+            throw new ZQLException("Select statement not contains group by expressions but contains having conditions");
+        }
+
+        // Наименования полей и их индексы
+        final List<Expression> selectExpressions;
+
+        if (select.getSelectExpression() == null) {
+            selectExpressions = new ArrayList<>(0);
+
+            columnNames = new String[0];
+            columnNameIndexes = new HashMap<>(0);
+
+            columnGroupingTypes = new GroupingType[0];
+            columnSortingTypes = new SortingType[0];
         } else {
-            list = new ArrayList<>(List.of(selectExpression));
-        }
-
-        columnsName = new String[list.size()];
-        columnsNameIndex = new HashMap<>(list.size());
-
-        for (int i = 0; i < list.size(); i++) {
-            final var expression = list.get(i);
-
-            switch (expression) {
-                case ExpressionIdentifier expressionIdentifier -> {
-                    columnsName[i] = expressionIdentifier.getIdentifier();
-                    columnsNameIndex.put(columnsName[i], i);
-                }
-                case ExpressionNumber expressionNumber -> {
-                    columnsName[i] = String.valueOf(expressionNumber.getNumber());
-                    columnsNameIndex.put(columnsName[i], i);
-                }
-                case ExpressionString expressionString -> {
-                    columnsName[i] = expressionString.getString();
-                    columnsNameIndex.put(columnsName[i], i);
-                }
-                case ExpressionWrapper expressionWrapper -> {
-                    columnsName[i] = expressionWrapper.toZql();
-                    columnsNameIndex.put(columnsName[i], i);
-                }
-                case ExpressionWrapper2 expressionWrapper2 -> {
-                    if (expressionWrapper2.getType() == Expression.Type.ALIAS) {
-                        columnsName[i] = expressionWrapper2.getWrappedExpression2().toZql();
-                        columnsNameIndex.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
-                    } else {
-                        columnsName[i] = expressionWrapper2.toZql();
-                        columnsNameIndex.put(columnsName[i], i);
-                    }
-                }
-                case null, default -> throw new IllegalArgumentException("Unexpected value: " + expression);
-            }
-        }
-    }
-
-    private void analyzeGroupingExpression(Expression groupingExpression) {
-        if (groupingExpression == null) {
-            columnsGroupingType = new Expression.Type[0];
-            columnsGroupingTypePosition = new int[0];
-            return;
-        }
-
-        final List<Expression> list;
-
-        if (groupingExpression instanceof ExpressionCollection expressionCollection) {
-            list = expressionCollection.getList();
-        } else {
-            list = new ArrayList<>(List.of(groupingExpression));
-        }
-
-        columnsGroupingType = new Expression.Type[list.size()];
-        columnsGroupingTypePosition = new int[list.size()];
-
-        for (int i = 0; i < list.size(); i++) {
-            final var expression = list.get(i);
-
-            switch (expression) {
-                case ExpressionIdentifier expressionIdentifier -> {
-
-                }
-                case ExpressionNumber expressionNumber -> {
-
-                }
-                case ExpressionString expressionString -> {
-
-                }
-                case ExpressionWrapper expressionWrapper -> {
-                    if (
-                            expressionWrapper.getType() == Expression.Type.COUNT
-                                    || expressionWrapper.getType() == Expression.Type.SUM
-                                    || expressionWrapper.getType() == Expression.Type.AVG
-                                    || expressionWrapper.getType() == Expression.Type.MIN
-                                    || expressionWrapper.getType() == Expression.Type.MAX
-                    ) {
-                        columnsGroupingType[i] = expressionWrapper.getType();
-                        columnsGroupingTypePosition[i] = columnsNameIndex.get(expressionWrapper.to)
-                    }
-                }
-                case ExpressionWrapper2 expressionWrapper2 -> {
-                    if (expressionWrapper2.getType() == Expression.Type.ALIAS) {
-                        columnsName[i] = expressionWrapper2.getWrappedExpression2().toZql();
-                        columnsNameIndex.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
-                    } else {
-                        columnsName[i] = expressionWrapper2.toZql();
-                        columnsNameIndex.put(columnsName[i], i);
-                    }
-                }
-                case null, default -> throw new IllegalArgumentException("Unexpected value: " + expression);
-            }
-        }
-    }
-
-    private void analyzeGroupingExpression() {
-        final int groupingExpressionsCount = groupByExpressions != null ? groupByExpressions.length : 0;
-
-        if (Arrays.stream(selectExpressions).allMatch(this::isAggregationFunction)) {
-            /* Все выражения - функции агрегации */
-
-            if (groupingExpressionsCount > 0) {
-                throw new ZQLException("Statement contains group by but all expressions are aggregation functions");
-            }
-
-            columnsGroupingTypePosition = new int[0];
-        } else if (Arrays.stream(selectExpressions).anyMatch(this::isAggregationFunction)) {
-            /* Как минимум одно, но не все выражения - функции агрегации */
-
-            if (groupByExpressions == null) {
-                throw new ZQLException("Statement contains aggregation function but not contains group by");
-            }
-
-            /* Подготовить имена выражений и индекс */
-            final String[] gropingExpressionsName = new String[groupingExpressionsCount];
-            final Map<String, Integer> groupingExpressionsNameIndex = new HashMap<>(groupingExpressionsCount);
-
-            for (int i = 0; i < groupingExpressionsCount; i++) {
-                gropingExpressionsName[i] = groupByExpressions[i].toName();
-                groupingExpressionsNameIndex.putIfAbsent(gropingExpressionsName[i], i);
-            }
-
-            columnsGroupingTypePosition = new int[groupingExpressionsCount];
-
-            /* Проверить что все выражения из group by присутствуют в select */
-            for (int i = 0; i < groupingExpressionsCount; i++) {
-                final int index = columnsNameIndex.getOrDefault(gropingExpressionsName[i], -1);
-
-                if (index == -1) {
-                    throw new ZQLException("Statement contains %s expression in grouping but not contains that expression in select".formatted(gropingExpressionsName[i]));
-                }
-
-                /* Отметить поле для группировки */
-                columnsGroupingTypePosition[i] = index;
-            }
-
-            /* Проверить что все выражения, кроме функций агрегации, в select присутствуют в group by */
-            for (int i = 0; i < columnsName.length; i++) {
-                if (isAggregationFunction(selectExpressions[i])) {
-                    continue;
-                }
-
-                final int index = groupingExpressionsNameIndex.getOrDefault(columnsName[i], -1);
-
-                if (index == -1) {
-                    throw new ZQLException("Statement contains %s expression in select but not contains that expression in grouping".formatted(columnsName[i]));
-                }
-            }
-        } else {
-            /* Все выражения - не функции агрегации */
-
-            columnsGroupingTypePosition = null;
-        }
-    }
-
-    private boolean isAggregationFunction(Expression expression) {
-        return expression.getType() == Expression.Type.COUNT
-                || expression.getType() == Expression.Type.SUM
-                || expression.getType() == Expression.Type.AVG
-                || expression.getType() == Expression.Type.MIN
-                || expression.getType() == Expression.Type.MAX
-                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.COUNT
-                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.SUM
-                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.AVG
-                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.MIN
-                || expression.getType() == Expression.Type.ALIAS && ((ExpressionWrapper2) expression).getWrappedExpression1().getType() == Expression.Type.MAX;
-    }
-
-    private void processGrouping(List<Object[]> rows) {
-        @NoArgsConstructor
-        class Wrapper {
-            private Object[] row;
-            private int consumed = 0;
-
-            public Wrapper(Object[] row) {
-                this.row = row;
-            }
-
-            public void consume(Wrapper another) {
-                final Object[] anotherRow = another.row;
-
-                for (int i = 0; i < row.length; i++) {
-                    switch (columnsGroupingType[i]) {
-                        case COUNT -> {
-                            if (row[i] instanceof Integer value) {
-                                row[i] = value + 1;
-                            } else {
-                                // todo exception
-                            }
-                        }
-                        case SUM -> {
-                            if (row[i] instanceof Integer value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = value1 + value2;
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = value1 + value2;
-                                } else {
-                                    // todo exception
-                                }
-                            } else if (row[i] instanceof Float value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = value1 + value2;
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = value1 + value2;
-                                } else {
-                                    // todo exception
-                                }
-                            } else {
-                                // todo exception
-                            }
-                        }
-                        case AVG -> {
-                            if (row[i] instanceof Integer value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
-                                } else {
-                                    // todo exception
-                                }
-                            } else if (row[i] instanceof Float value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = value1 + (value2 - value1) / (consumed + 1);
-                                } else {
-                                    // todo exception
-                                }
-                            } else {
-                                // todo exception
-                            }
-                        }
-                        case MIN -> {
-                            if (row[i] instanceof Integer value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = Math.min(value1, value2);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = Math.min(value1, value2);
-                                } else {
-                                    // todo exception
-                                }
-                            } else if (row[i] instanceof Float value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = Math.min(value1, value2);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = Math.min(value1, value2);
-                                } else {
-                                    // todo exception
-                                }
-                            } else {
-                                // todo exception
-                            }
-                        }
-                        case MAX -> {
-                            if (row[i] instanceof Integer value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = Math.max(value1, value2);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = Math.max(value1, value2);
-                                } else {
-                                    // todo exception
-                                }
-                            } else if (row[i] instanceof Float value1) {
-                                if (anotherRow[i] instanceof Integer value2) {
-                                    row[i] = Math.max(value1, value2);
-                                } else if (anotherRow[i] instanceof Float value2) {
-                                    row[i] = Math.max(value1, value2);
-                                } else {
-                                    // todo exception
-                                }
-                            } else {
-                                // todo exception
-                            }
-                        }
-                    }
-                }
-
-                consumed++;
-            }
-
-            @Override
-            public int hashCode() {
-                return IntStream.range(0, columnsGroupingTypePosition.length).map(i -> row[i].hashCode()).sum();
-            }
-
-            @Override
-            public boolean equals(Object object) {
-                return object instanceof Wrapper wrapper && IntStream.range(0, columnsGroupingTypePosition.length).allMatch(i -> Objects.equals(row[i], wrapper.row[i]));
-            }
-        }
-
-        final Map<Wrapper, Wrapper> groups = new HashMap<>();
-        final Wrapper current = new Wrapper();
-
-        rows.removeIf(row -> {
-            current.row = row;
-
-            Wrapper buff = groups.get(current);
-            if (buff != null) {
-                buff.consume(current);
-                return true;
+            if (select.getSelectExpression() instanceof ExpressionCollection expressionCollection) {
+                selectExpressions = expressionCollection.getList();
             } else {
-                buff = new Wrapper(current.row);
-                groups.put(buff, buff);
-                return false;
+                selectExpressions = new ArrayList<>(List.of(select.getSelectExpression()));
             }
-        });
+
+            columnNames = new String[selectExpressions.size()];
+            columnNameIndexes = new HashMap<>(selectExpressions.size());
+
+            collectColumnNames(selectExpressions, columnNames, columnNameIndexes);
+
+            columnGroupingTypes = new GroupingType[selectExpressions.size()];
+            columnSortingTypes = new SortingType[selectExpressions.size()];
+        }
+
+        // Наименования полей группировки и их индексы
+        final String[] columnGroupingNames;
+        final Map<String, Integer> columnGroupingNameIndexes;
+
+        final List<Expression> groupingExpressions;
+
+        if (select.getGroupByExpression() == null) {
+            groupingExpressions = new ArrayList<>(0);
+
+            columnGroupingNames = new String[0];
+            columnGroupingNameIndexes = new HashMap<>(0);
+        } else {
+            if (select.getGroupByExpression() instanceof ExpressionCollection expressionCollection) {
+                groupingExpressions = expressionCollection.getList();
+            } else {
+                groupingExpressions = new ArrayList<>(List.of(select.getGroupByExpression()));
+            }
+
+            columnGroupingNames = new String[groupingExpressions.size()];
+            columnGroupingNameIndexes = new HashMap<>(groupingExpressions.size());
+
+            collectColumnNames(groupingExpressions, columnGroupingNames, columnGroupingNameIndexes);
+        }
+
+        // Инициализация типов группировки полей и проверка группировки полей
+        for (int i = 0; i < selectExpressions.size(); i++) {
+            columnGroupingTypes[i] = GroupingType.from(selectExpressions.get(i));
+
+            if (columnGroupingTypes[i] != GroupingType.NONE) {
+                continue;
+            }
+
+            final int index = columnGroupingNameIndexes.getOrDefault(columnNames[i], -1);
+
+            if (index == -1) {
+                throw new ZQLException("Grouping rule not contains expression: " + columnNames[i]);
+            }
+        }
+
+        for (int i = 0; i < groupingExpressions.size(); i++) {
+            final int index = columnNameIndexes.getOrDefault(columnGroupingNames[i], -1);
+
+            if (index == -1) {
+                throw new ZQLException("Grouping rule contains non-exists expression: " + columnGroupingNames[i]);
+            }
+        }
+
+        // Наименования полей сортировки и их индексы
+        final String[] columnSortingNames;
+        final Map<String, Integer> columnSortingNameIndexes;
+
+        final List<Expression> sortingExpressions;
+
+        if (select.getOrderByExpression() == null) {
+            sortingExpressions = new ArrayList<>(0);
+
+            columnSortingNames = new String[0];
+            columnSortingNameIndexes = new HashMap<>(0);
+        } else {
+            if (select.getOrderByExpression() instanceof ExpressionCollection expressionCollection) {
+                sortingExpressions = expressionCollection.getList();
+            } else {
+                sortingExpressions = new ArrayList<>(List.of(select.getOrderByExpression()));
+            }
+
+            columnSortingNames = new String[sortingExpressions.size()];
+            columnSortingNameIndexes = new HashMap<>(sortingExpressions.size());
+
+            collectColumnNames(sortingExpressions, columnSortingNames, columnSortingNameIndexes);
+        }
+
+        // Инициализация типов сортировки полей и проверка сортировки полей
+        Arrays.fill(columnSortingTypes, SortingType.NONE);
+
+        for (int i = 0; i < sortingExpressions.size(); i++) {
+            final int index = columnNameIndexes.getOrDefault(columnSortingNames[i], -1);
+
+            if (index == -1) {
+                throw new ZQLException("Sorting rule contains non-exists expression: " + sortingExpressions.get(i).toZql());
+            }
+
+            columnSortingTypes[index] = SortingType.from(sortingExpressions.get(i));
+        }
     }
 
+    private void collectColumnNames(List<Expression> expressions, String[] columnNames, Map<String, Integer> columnNameIndexes) {
+        for (int i = 0; i < expressions.size(); i++) {
+            switch (expressions.get(i)) {
+                case ExpressionIdentifier expressionIdentifier -> {
+                    columnNames[i] = expressionIdentifier.getIdentifier();
+                    columnNameIndexes.put(columnNames[i], i);
+                }
+                case ExpressionNumber expressionNumber -> {
+                    columnNames[i] = String.valueOf(expressionNumber.getNumber());
+                    columnNameIndexes.put(columnNames[i], i);
+                }
+                case ExpressionString expressionString -> {
+                    columnNames[i] = expressionString.getString();
+                    columnNameIndexes.put(columnNames[i], i);
+                }
+                case ExpressionWrapper expressionWrapper -> {
+                    switch (expressionWrapper.getType()) {
+                        case COUNT, SUM, AVG, MIN, MAX -> {
+                            columnNames[i] = expressionWrapper.toZql();
+                            columnNameIndexes.put(columnNames[i], i);
+                        }
+                        case ORDER_BY_ASC, ORDER_BY_DESC -> {
+                            columnNames[i] = expressionWrapper.getWrappedExpression().toZql();
+                            columnNameIndexes.put(columnNames[i], i);
+                        }
+                        default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
+                    }
+                }
+                case ExpressionWrapper2 expressionWrapper2 -> {
+                    switch (expressionWrapper2.getType()) {
+                        case ALIAS -> {
+                            columnNames[i] = expressionWrapper2.getWrappedExpression2().toZql();
+                            columnNameIndexes.put(columnNames[i], i);
+                            columnNameIndexes.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
+                        }
+                        case JSON_PATH -> {
+                            columnNames[i] = expressionWrapper2.toZql();
+                            columnNameIndexes.put(columnNames[i], i);
+                        }
+                        default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper2.getType());
+                    }
+                }
+                default -> throw new IllegalArgumentException("Unexpected value: " + expressions.get(i));
+            }
+        }
+    }
 }

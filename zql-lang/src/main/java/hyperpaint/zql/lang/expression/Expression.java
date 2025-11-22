@@ -1,15 +1,15 @@
 package hyperpaint.zql.lang.expression;
 
-import hyperpaint.zql.lang.base.Component;
-import hyperpaint.zql.lang.base.ComponentRowToValue;
-import hyperpaint.zql.lang.base.ComponentToName;
-import hyperpaint.zql.lang.base.ComponentEntryToValue;
-import lombok.*;
+import hyperpaint.zql.lang.Component;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Expression extends Component<Expression> implements ComponentEntryToValue<Object>, ComponentRowToValue<Object>, ComponentToName {
+public abstract class Expression extends Component<Expression> {
     public enum Type {
         COMMA,
 
@@ -31,19 +31,4 @@ public abstract class Expression extends Component<Expression> implements Compon
     }
 
     protected final Expression.Type type;
-
-    @Override
-    public Expression[] toComponents() {
-        return new Expression[] { this };
-    }
-
-    @Override
-    public boolean hasAlias() {
-        return false;
-    }
-
-    @Override
-    public String toAlias() {
-        return null;
-    }
 }

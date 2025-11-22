@@ -1,43 +1,34 @@
 package hyperpaint.zql.exec.select;
 
-import hyperpaint.zql.lang.ZQLException;
-import hyperpaint.zql.lang.expression.Expression;
-import hyperpaint.zql.lang.expression.ExpressionCollection;
-import hyperpaint.zql.lang.expression.ExpressionWrapper;
-
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
-public class SortingExec {
+class SortingExec {
     private Comparator<Object[]> rowComparator = null;
 
-    public SortingExec(Expression expression, Map<String, Integer> columnsNameIndex) {
-        switch (expression) {
-            case ExpressionCollection expressionCollection -> {
-                final var list = expressionCollection.getList();
+    SortingExec(SortingType[] columnSortingTypes) {
+        if (Arrays.stream(columnSortingTypes).allMatch(type -> type == SortingType.NONE)) {
+            return;
+        }
 
-                for (var item : list) {
-                    final SortingExec expression1 = new SortingExec(item, columnsNameIndex);
-
-                    rowComparator = rowComparator != null ? rowComparator.thenComparing(expression1.rowComparator) : expression1.rowComparator;
+        for (int i = 0; i < columnSortingTypes.length; i++) {
+            switch (columnSortingTypes[i]) {
+                case ASCENDANT -> {
+                    if (rowComparator == null) {
+                        rowComparator = createComparator(i);
+                    } else {
+                        rowComparator = rowComparator.thenComparing(createComparator(i));
+                    }
+                }
+                case DESCENDANT -> {
+                    if (rowComparator == null) {
+                        rowComparator = createComparator(i).reversed();
+                    } else {
+                        rowComparator = rowComparator.thenComparing(createComparator(i)).reversed();
+                    }
                 }
             }
-            case ExpressionWrapper expressionWrapper -> {
-                final int index = columnsNameIndex.getOrDefault(expressionWrapper.getWrappedExpression().toName(), -1);
-
-                if (index == -1) {
-                    throw new ZQLException("Sorting rule contains non-exist expression: " + expressionWrapper.toZql());
-                }
-
-                switch (expressionWrapper.getType()) {
-                    case ORDER_BY_ASC -> rowComparator = createComparator(index);
-                    case ORDER_BY_DESC -> rowComparator = createComparator(index).reversed();
-                    default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
-                }
-            }
-            case null -> rowComparator = null;
-            default -> throw new IllegalStateException("Unexpected value: " + expression);
         }
     }
 
@@ -75,16 +66,8 @@ public class SortingExec {
     }
 
     public void execute(List<Object[]> rows) {
-        if (isNotNull()) {
+        if (rowComparator != null) {
             rows.sort(rowComparator);
         }
-    }
-
-    public boolean isNull() {
-        return rowComparator == null;
-    }
-
-    public boolean isNotNull() {
-        return rowComparator != null;
     }
 }

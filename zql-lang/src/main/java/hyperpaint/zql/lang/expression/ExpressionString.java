@@ -4,8 +4,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
-import java.util.Map;
-
 @Getter
 @ToString(callSuper = true)
 public class ExpressionString extends Expression {
@@ -24,20 +22,5 @@ public class ExpressionString extends Expression {
         } else {
             return "\"" + string + "\"";
         }
-    }
-
-    @Override
-    public Object toValue(String path, String data) {
-        return string;
-    }
-
-    @Override
-    public Object toValue(Object[] row, Map<String, Integer> index) {
-        return string;
-    }
-
-    @Override
-    public String toName() {
-        return string;
     }
 }

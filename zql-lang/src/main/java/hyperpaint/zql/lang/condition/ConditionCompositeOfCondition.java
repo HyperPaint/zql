@@ -4,8 +4,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 
-import java.util.Map;
-
 @Getter
 @ToString(callSuper = true)
 public class ConditionCompositeOfCondition extends Condition {
@@ -34,23 +32,5 @@ public class ConditionCompositeOfCondition extends Condition {
                 default -> throw new IllegalArgumentException("Unexpected value: " + type);
             };
         }
-    }
-
-    @Override
-    public Boolean toValue(String path, String data) {
-        return switch (type) {
-            case AND -> left.toValue(path, data) && right.toValue(path, data);
-            case OR -> left.toValue(path, data) || right.toValue(path, data);
-            default -> throw new IllegalArgumentException("Unexpected value: " + type);
-        };
-    }
-
-    @Override
-    public Boolean toValue(Object[] row, Map<String, Integer> index) {
-        return switch (type) {
-            case AND -> left.toValue(row, index) && right.toValue(row, index);
-            case OR -> left.toValue(row, index) || right.toValue(row, index);
-            default -> throw new IllegalArgumentException("Unexpected value: " + type);
-        };
     }
 }

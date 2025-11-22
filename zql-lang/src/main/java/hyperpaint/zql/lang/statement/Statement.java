@@ -1,6 +1,6 @@
 package hyperpaint.zql.lang.statement;
 
-import hyperpaint.zql.lang.base.Component;
+import hyperpaint.zql.lang.Component;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,8 +16,4 @@ public abstract class Statement extends Component<Statement> {
 
     protected final Type type;
 
-    @Override
-    public Statement[] toComponents() {
-        return new Statement[] { this };
-    }
 }
