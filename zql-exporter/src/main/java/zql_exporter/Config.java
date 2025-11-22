@@ -104,7 +104,7 @@ public class Config {
 
     @Bean
     @Scope("prototype")
-    public Socket zookeeperMonitoringSocket(
+    public Socket zookeeperSocket(
             String zookeeperHost,
             int zookeeperPort,
             int zookeeperSessionTimeout,

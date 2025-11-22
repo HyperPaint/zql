@@ -1,5 +1,6 @@
 plugins {
     id "java"
+    id "java-library"
 }
 
 group = "hyperpaint"
@@ -17,7 +18,7 @@ dependencies {
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     // ANTLR
-    implementation "org.antlr:antlr4-runtime:${antlr_version}"
+    api "org.antlr:antlr4-runtime:${antlr_version}"
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"

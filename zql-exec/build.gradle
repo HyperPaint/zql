@@ -1,5 +1,6 @@
 plugins {
     id "java"
+    id "java-library"
 }
 
 group = "hyperpaint"
@@ -10,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation project(":zql-lang")
+    api project(":zql-lang")
 
     // Lombok
     compileOnly "org.projectlombok:lombok:${lombok_version}"
@@ -19,10 +20,10 @@ dependencies {
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     // ZooKeeper
-    implementation "org.apache.zookeeper:zookeeper:${zookeeper_version}"
+    api "org.apache.zookeeper:zookeeper:${zookeeper_version}"
 
     // Json Path
-    implementation "com.jayway.jsonpath:json-path:${json_path_version}"
+    api "com.jayway.jsonpath:json-path:${json_path_version}"
 
     // Test
     testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"

@@ -21,10 +21,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @RestController
 public class AppController {
-    private final Object zookeeperLock = new Object();
-
     private final CuratorFramework curator;
-    private final ObjectFactory<Socket> zookeeperMonitoringSocketFactory;
+    private final ObjectFactory<Socket> zookeeperSocketFactory;
 
     private final boolean secretEnabled;
     private final String secretValue;
@@ -38,37 +36,51 @@ public class AppController {
     public ResponseEntity<String> query(
             @RequestParam(required = false) String secret,
             @RequestParam String query
-    ) {
-        try {
-            final var checkSecret = checkSecret(secret);
-            if (checkSecret != null) return checkSecret;
+    ) throws Exception {
+        final var checkSecret = checkSecret(secret);
+        if (checkSecret != null) return checkSecret;
 
-            final var resultSet = queryExec(query);
-            final var stringBuilder = new StringBuilder();
+        final var resultSet = queryExec(query);
+        final var stringBuilder = new StringBuilder();
 
-            for (var column : resultSet.getColumns()) {
-                stringBuilder.append(column).append("\t");
+        for (var column : resultSet.getColumns()) {
+            stringBuilder.append(column).append("\t");
+        }
+
+        stringBuilder.append("\n");
+
+        for (var row : resultSet.getRows()) {
+            for (var item : row) {
+                stringBuilder.append(item).append("\t");
             }
 
             stringBuilder.append("\n");
-
-            for (var row : resultSet.getRows()) {
-                for (var item : row) {
-                    stringBuilder.append(item).append("\t");
-                }
-
-                stringBuilder.append("\n");
-            }
-
-            return ResponseEntity.status(200).body(stringBuilder.toString());
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return ResponseEntity.status(500).body(e.getMessage());
         }
+
+        return ResponseEntity.status(200).body(stringBuilder.toString());
     }
 
     private ResultSet queryExec(String query) throws Exception {
-        if (isZookeeperLeader()) {
+        final boolean leader = socketExec(COMMAND_STAT)
+                .toLowerCase()
+                .lines()
+                .filter(s -> s.startsWith("mode: "))
+                .findFirst()
+                .map(s ->
+                        switch (s.substring(6)) {
+                            case "leader", "standalone" -> true;
+                            case "follower" -> false;
+                            default -> {
+                                log.warn("ZooKeeper mode is unknown in response to stat command: {}", s.substring(6));
+                                yield false;
+                            }
+                        }
+                ).orElseGet(() -> {
+                    log.warn("Zookeeper mode is not found in response to stat command");
+                    return false;
+                });
+
+        if (leader) {
             final Statement statement = Statement.createStatement(query);
             return statement.execute(curator.getZookeeperClient().getZooKeeper());
         } else {
@@ -79,42 +91,37 @@ public class AppController {
     @GetMapping("/metrics")
     public ResponseEntity<String> metrics(
             @RequestParam(required = false) String secret
-    ) {
-        try {
-            final var checkSecret = checkSecret(secret);
-            if (checkSecret != null) return checkSecret;
+    ) throws Exception {
+        final var checkSecret = checkSecret(secret);
+        if (checkSecret != null) return checkSecret;
 
-            final var result = socketExec(COMMAND_MNTR)
-                    .lines()
-                    .map(s -> {
-                        final int delimiterIndex = s.indexOf("\t");
-                        if (delimiterIndex != -1) {
-                            String key = s.substring(0, delimiterIndex);
-                            if (key.startsWith("zk_")) {
-                                key = "zookeeper_" + key.substring(3);
-                            }
-
-                            final String value = s.substring(delimiterIndex + 1);
-
-                            try {
-                                // Отображения как число (в корректном формате)
-                                return "# TYPE zql_%s gauge\nzql_%s %s".formatted(key, key, String.valueOf(Float.parseFloat(value)));
-                            } catch (NumberFormatException ignored) {
-                                // Отобразить как метку
-                                return "# TYPE zql_%s gauge\nzql_%s{value=\"%s\"} 1.0".formatted(key, key, value);
-                            }
-                        } else {
-                            return null;
+        final var result = socketExec(COMMAND_MNTR)
+                .lines()
+                .map(s -> {
+                    final int delimiterIndex = s.indexOf("\t");
+                    if (delimiterIndex != -1) {
+                        String key = s.substring(0, delimiterIndex);
+                        if (key.startsWith("zk_")) {
+                            key = "zookeeper_" + key.substring(3);
                         }
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.joining("\n"));
 
-            return ResponseEntity.status(200).body(result);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return ResponseEntity.status(500).body(e.getMessage());
-        }
+                        final String value = s.substring(delimiterIndex + 1);
+
+                        try {
+                            // Отображения как число (в корректном формате)
+                            return "# TYPE zql_%s gauge\nzql_%s %s".formatted(key, key, String.valueOf(Float.parseFloat(value)));
+                        } catch (NumberFormatException ignored) {
+                            // Отобразить как метку
+                            return "# TYPE zql_%s gauge\nzql_%s{value=\"%s\"} 1.0".formatted(key, key, value);
+                        }
+                    } else {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("\n"));
+
+        return ResponseEntity.status(200).body(result);
     }
 
     /// New in 3.3.0: Print details about serving configuration.
@@ -145,7 +152,7 @@ public class AppController {
     private static final byte[] COMMAND_MNTR = "mntr".getBytes(StandardCharsets.UTF_8);
 
     private String socketExec(byte[] command) throws IOException {
-        final Socket zookeeperMonitoringSocket = zookeeperMonitoringSocketFactory.getObject();
+        final Socket zookeeperMonitoringSocket = zookeeperSocketFactory.getObject();
 
         try (zookeeperMonitoringSocket) {
             zookeeperMonitoringSocket.getOutputStream().write(command);
@@ -167,26 +174,5 @@ public class AppController {
         }
 
         return null;
-    }
-
-    private boolean isZookeeperLeader() throws IOException {
-        return socketExec(COMMAND_STAT)
-                .toLowerCase()
-                .lines()
-                .filter(s -> s.startsWith("mode: "))
-                .findFirst()
-                .map(s ->
-                        switch (s.substring(6)) {
-                            case "leader", "standalone" -> true;
-                            case "follower" -> false;
-                            default -> {
-                                log.warn("ZooKeeper mode is unknown in response to stat command: {}", s.substring(6));
-                                yield false;
-                            }
-                        }
-                ).orElseGet(() -> {
-                    log.warn("Zookeeper mode is not found in response to stat command");
-                    return false;
-                });
     }
 }
