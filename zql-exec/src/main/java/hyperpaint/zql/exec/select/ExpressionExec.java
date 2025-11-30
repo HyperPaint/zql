@@ -2,10 +2,8 @@ package hyperpaint.zql.exec.select;
 
 import com.jayway.jsonpath.JsonPath;
 import hyperpaint.zql.lang.expression.*;
-import lombok.Getter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
