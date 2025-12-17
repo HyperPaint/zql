@@ -37,7 +37,7 @@ public enum GroupingType {
         };
     }
 
-    public boolean isNone() {
+    public boolean isNotGrouping() {
         return this == NONE;
     }
 

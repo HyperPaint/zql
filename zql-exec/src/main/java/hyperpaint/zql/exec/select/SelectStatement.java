@@ -18,18 +18,28 @@ public class SelectStatement implements Statement {
     private final FilteringExec havingFilteringExec;
     private final SortingExec sortingExec;
 
-    /** Наименования полей */
+    /**
+     * Наименования полей
+     */
     private String[] columnNames;
-    /** Индексы наименований полей */
+    /**
+     * Индексы наименований полей
+     */
     private Map<String, Integer> columnNameIndexes;
 
-    /** Тип группировки в полях */
+    /**
+     * Тип группировки в полях
+     */
     private GroupingType[] columnGroupingTypes;
 
-    /** Тип сортировки в полях */
+    /**
+     * Тип сортировки в полях
+     */
     private SortingType[] columnSortingTypes;
 
-    /** Ошибки возникшие во время исполнения */
+    /**
+     * Ошибки возникшие во время исполнения
+     */
     private final List<Exception> exceptions = new LinkedList<>();
 
     public SelectStatement(@NonNull Select select) throws ZQLException {
@@ -125,7 +135,6 @@ public class SelectStatement implements Statement {
 
             columnNames = new String[selectExpressions.size()];
             columnNameIndexes = new HashMap<>(selectExpressions.size());
-
             collectColumnNames(selectExpressions, columnNames, columnNameIndexes);
 
             columnGroupingTypes = new GroupingType[selectExpressions.size()];
@@ -152,31 +161,30 @@ public class SelectStatement implements Statement {
 
             columnGroupingNames = new String[groupingExpressions.size()];
             columnGroupingNameIndexes = new HashMap<>(groupingExpressions.size());
-
             collectColumnNames(groupingExpressions, columnGroupingNames, columnGroupingNameIndexes);
         }
 
-        // Инициализация и проверка типов группировки полей
+        // Инициализация типов группировки полей
         for (int i = 0; i < selectExpressions.size(); i++) {
             columnGroupingTypes[i] = GroupingType.from(selectExpressions.get(i));
         }
 
-        final boolean grouping = Arrays.stream(columnGroupingTypes).anyMatch(GroupingType::isGrouping);
+        // Прямая проверка типов группировки полей
+        final boolean isGroupingExists = Arrays.stream(columnGroupingTypes).anyMatch(GroupingType::isGrouping);
 
-        if (grouping) {
+        if (isGroupingExists) {
             for (int i = 0; i < selectExpressions.size(); i++) {
-                if (columnGroupingTypes[i].isGrouping()) {
-                    continue;
-                }
+                if (columnGroupingTypes[i].isNotGrouping()) {
+                    final int index = columnGroupingNameIndexes.getOrDefault(columnNames[i], -1);
 
-                final int index = columnGroupingNameIndexes.getOrDefault(columnNames[i], -1);
-
-                if (index == -1) {
-                    throw new ZQLException("Grouping rule not contains expression: " + columnNames[i]);
+                    if (index == -1) {
+                        throw new ZQLException("Grouping rule not contains expression: " + columnNames[i]);
+                    }
                 }
             }
         }
 
+        // Обратная проверка типов группировки полей
         for (int i = 0; i < groupingExpressions.size(); i++) {
             final int index = columnNameIndexes.getOrDefault(columnGroupingNames[i], -1);
 
@@ -191,7 +199,12 @@ public class SelectStatement implements Statement {
 
         final List<Expression> sortingExpressions;
 
-        if (select.getOrderByExpression() != null) {
+        if (select.getOrderByExpression() == null) {
+            sortingExpressions = new ArrayList<>(0);
+
+            columnSortingNames = new String[0];
+            columnSortingNameIndexes = new HashMap<>(0);
+        } else {
             if (select.getOrderByExpression() instanceof ExpressionCollection expressionCollection) {
                 sortingExpressions = expressionCollection.getList();
             } else {
@@ -200,23 +213,27 @@ public class SelectStatement implements Statement {
 
             columnSortingNames = new String[sortingExpressions.size()];
             columnSortingNameIndexes = new HashMap<>(sortingExpressions.size());
-
             collectColumnNames(sortingExpressions, columnSortingNames, columnSortingNameIndexes);
+        }
 
-            // Инициализация типов сортировки полей и проверка сортировки полей
-            Arrays.fill(columnSortingTypes, SortingType.NONE);
+        // Инициализация типов сортировки полей
+        for (int i = 0; i < selectExpressions.size(); i++) {
+            final int index = columnSortingNameIndexes.getOrDefault(columnNames[i], -1);
 
-            for (int i = 0; i < sortingExpressions.size(); i++) {
-                final int index = columnNameIndexes.getOrDefault(columnSortingNames[i], -1);
-
-                if (index == -1) {
-                    throw new ZQLException("Sorting rule contains non-exists expression: " + sortingExpressions.get(i).toZql());
-                }
-
-                columnSortingTypes[index] = SortingType.from(sortingExpressions.get(i));
+            if (index == -1) {
+                columnSortingTypes[i] = SortingType.NONE;
+            } else {
+                columnSortingTypes[i] = SortingType.from(sortingExpressions.get(index));
             }
-        } else {
-            Arrays.fill(columnSortingTypes, SortingType.NONE);
+        }
+
+        // Обратная проверка типов сортировки полей
+        for (int i = 0; i < sortingExpressions.size(); i++) {
+            final int index = columnNameIndexes.getOrDefault(columnSortingNames[i], -1);
+
+            if (index == -1) {
+                throw new ZQLException("Sorting rule contains non-exists expression: " + sortingExpressions.get(i).toZql());
+            }
         }
     }
 

@@ -123,7 +123,6 @@ znodeRoot
     :   '/'
     ;
 
-
 whereConditions
     :   whereConditions AND_WORD whereConditions # WhereConditionsAnd
     |   whereConditions OR_WORD whereConditions # WhereConditionsOr
@@ -204,6 +203,11 @@ orderByExpressions
 
 orderByExpression
     :   expressionJsonPath (ASC_WORD | DESC_WORD)?
+    |   expressionCount (ASC_WORD | DESC_WORD)?
+    |   expressionSum (ASC_WORD | DESC_WORD)?
+    |   expressionAvg (ASC_WORD | DESC_WORD)?
+    |   expressionMin (ASC_WORD | DESC_WORD)?
+    |   expressionMax (ASC_WORD | DESC_WORD)?
     |   expressionNumber (ASC_WORD | DESC_WORD)?
     |   expressionString (ASC_WORD | DESC_WORD)?
     |   expressionIdentifier (ASC_WORD | DESC_WORD)?
