@@ -36,4 +36,12 @@ public enum GroupingType {
             default -> GroupingType.NONE;
         };
     }
+
+    public boolean isNone() {
+        return this == NONE;
+    }
+
+    public boolean isGrouping() {
+        return this != NONE;
+    }
 }

@@ -156,18 +156,24 @@ public class SelectStatement implements Statement {
             collectColumnNames(groupingExpressions, columnGroupingNames, columnGroupingNameIndexes);
         }
 
-        // Инициализация типов группировки полей и проверка группировки полей
+        // Инициализация и проверка типов группировки полей
         for (int i = 0; i < selectExpressions.size(); i++) {
             columnGroupingTypes[i] = GroupingType.from(selectExpressions.get(i));
+        }
 
-            if (columnGroupingTypes[i] != GroupingType.NONE) {
-                continue;
-            }
+        final boolean grouping = Arrays.stream(columnGroupingTypes).anyMatch(GroupingType::isGrouping);
 
-            final int index = columnGroupingNameIndexes.getOrDefault(columnNames[i], -1);
+        if (grouping) {
+            for (int i = 0; i < selectExpressions.size(); i++) {
+                if (columnGroupingTypes[i].isGrouping()) {
+                    continue;
+                }
 
-            if (index == -1) {
-                throw new ZQLException("Grouping rule not contains expression: " + columnNames[i]);
+                final int index = columnGroupingNameIndexes.getOrDefault(columnNames[i], -1);
+
+                if (index == -1) {
+                    throw new ZQLException("Grouping rule not contains expression: " + columnNames[i]);
+                }
             }
         }
 
@@ -185,12 +191,7 @@ public class SelectStatement implements Statement {
 
         final List<Expression> sortingExpressions;
 
-        if (select.getOrderByExpression() == null) {
-            sortingExpressions = new ArrayList<>(0);
-
-            columnSortingNames = new String[0];
-            columnSortingNameIndexes = new HashMap<>(0);
-        } else {
+        if (select.getOrderByExpression() != null) {
             if (select.getOrderByExpression() instanceof ExpressionCollection expressionCollection) {
                 sortingExpressions = expressionCollection.getList();
             } else {
@@ -201,19 +202,21 @@ public class SelectStatement implements Statement {
             columnSortingNameIndexes = new HashMap<>(sortingExpressions.size());
 
             collectColumnNames(sortingExpressions, columnSortingNames, columnSortingNameIndexes);
-        }
 
-        // Инициализация типов сортировки полей и проверка сортировки полей
-        Arrays.fill(columnSortingTypes, SortingType.NONE);
+            // Инициализация типов сортировки полей и проверка сортировки полей
+            Arrays.fill(columnSortingTypes, SortingType.NONE);
 
-        for (int i = 0; i < sortingExpressions.size(); i++) {
-            final int index = columnNameIndexes.getOrDefault(columnSortingNames[i], -1);
+            for (int i = 0; i < sortingExpressions.size(); i++) {
+                final int index = columnNameIndexes.getOrDefault(columnSortingNames[i], -1);
 
-            if (index == -1) {
-                throw new ZQLException("Sorting rule contains non-exists expression: " + sortingExpressions.get(i).toZql());
+                if (index == -1) {
+                    throw new ZQLException("Sorting rule contains non-exists expression: " + sortingExpressions.get(i).toZql());
+                }
+
+                columnSortingTypes[index] = SortingType.from(sortingExpressions.get(i));
             }
-
-            columnSortingTypes[index] = SortingType.from(sortingExpressions.get(i));
+        } else {
+            Arrays.fill(columnSortingTypes, SortingType.NONE);
         }
     }
 
