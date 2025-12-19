@@ -21,7 +21,69 @@ class ExpressionExec {
     private final EntryToValue[] entryToValue;
     private final RowToValue[] rowToValue;
 
+    // todo вынести из конструктора в функцию
     ExpressionExec(Expression expression) {
+        entryToValue = buildEntryToValue(expression);
+        rowToValue = buildRowToValue(expression);
+    }
+
+    private EntryToValue[] buildEntryToValue(Expression expression) {
+        return switch (expression) {
+            case ExpressionCollection expressionCollection -> {
+                final List<Expression> list = expressionCollection.getList();
+                final EntryToValue[] buff = new EntryToValue[list.size()];
+
+                for (int i = 0; i < list.size(); i++) {
+                    buff[i] = buildEntryToValue(list.get(i))[0];
+                }
+
+                yield buff;
+            }
+            case ExpressionIdentifier expressionIdentifier -> new EntryToValue[]{(path, data) -> switch (expressionIdentifier.getIdentifier().toLowerCase()) {
+                case "path" -> path;
+                case "data" -> {
+                    if (data == null) {
+                        yield null;
+                    }
+
+                    try {
+                        if (data.contains(".") || data.contains(",")) {
+                            yield Float.valueOf(data);
+                        } else {
+                            yield Integer.valueOf(data);
+                        }
+                    } catch (NumberFormatException ignored) {
+                        yield data;
+                    }
+                }
+                default -> throw new IllegalArgumentException("Unexpected value: " + expressionIdentifier.getIdentifier());
+            }};
+            case ExpressionNumber expressionNumber -> new EntryToValue[]{(path, data) -> expressionNumber.getNumber()};
+            case ExpressionString expressionString -> new EntryToValue[]{(path, data) -> expressionString.getString()};
+            case ExpressionWrapper expressionWrapper -> switch (expressionWrapper.getType()) {
+                case COUNT, SUM, AVG, MIN, MAX -> buildEntryToValue(expressionWrapper.getWrappedExpression());
+                default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
+            };
+            case ExpressionWrapper2 expressionWrapper2 -> switch (expressionWrapper2.getType()) {
+                case ALIAS -> buildEntryToValue(expressionWrapper2.getWrappedExpression1());
+                case JSON_PATH -> new EntryToValue[]{(path, data) -> {
+                    final String json = String.valueOf(buildEntryToValue(expressionWrapper2.getWrappedExpression1())[0].run(path, data));
+                    final String jsonPath = String.valueOf(buildEntryToValue(expressionWrapper2.getWrappedExpression2())[0].run(path, data));
+
+                    try {
+                        return JsonPath.read(json, jsonPath);
+                    } catch (Exception ignored) {
+                        // todo log excption
+                        return null;
+                    }
+                }};
+                default -> throw new IllegalArgumentException("Unexpected value: " + expressionWrapper2.getType());
+            };
+            default -> throw new IllegalArgumentException("Unexpected value: " + expression);
+        };
+    }
+
+    private RowToValue[] buildRowToValue(Expression expression) {
         switch (expression) {
             case ExpressionCollection expressionCollection -> {
                 final List<Expression> list = expressionCollection.getList();
