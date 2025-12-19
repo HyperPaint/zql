@@ -9,190 +9,200 @@ import java.util.Map;
 
 class ExpressionExec {
     @FunctionalInterface
-    private interface EntryToValue {
+    private interface EntryValue {
         Object run(String path, String data);
     }
 
     @FunctionalInterface
-    private interface RowToValue {
+    private interface RowValue {
         Object run(Object[] row, Map<String, Integer> columnsNameIndex);
     }
 
-    private final EntryToValue[] entryToValue;
-    private final RowToValue[] rowToValue;
+    private final EntryValue[] entryValue;
+    private final RowValue[] rowValue;
 
-    // todo вынести из конструктора в функцию
     ExpressionExec(Expression expression) {
-        entryToValue = buildEntryToValue(expression);
-        rowToValue = buildRowToValue(expression);
+        entryValue = buildEntryValues(expression);
+        rowValue = buildRowValues(expression);
     }
 
-    private EntryToValue[] buildEntryToValue(Expression expression) {
+    private EntryValue[] buildEntryValues(Expression expression) {
         return switch (expression) {
-            case ExpressionCollection expressionCollection -> {
-                final List<Expression> list = expressionCollection.getList();
-                final EntryToValue[] buff = new EntryToValue[list.size()];
+            case ExpressionCollection expressionCollection -> buildEntryValues(expressionCollection);
+            case ExpressionIdentifier expressionIdentifier -> new EntryValue[] { buildEntryValue(expressionIdentifier) };
+            case ExpressionNumber expressionNumber -> new EntryValue[] { buildEntryValue(expressionNumber) };
+            case ExpressionString expressionString -> new EntryValue[] { buildEntryValue(expressionString) };
+            case ExpressionWrapper expressionWrapper -> new EntryValue[] { buildEntryValue(expressionWrapper) };
+            case ExpressionWrapper2 expressionWrapper2 -> new EntryValue[] { buildEntryValue(expressionWrapper2) };
+            default -> throw new IllegalStateException("Unexpected value: " + expression);
+        };
+    }
 
-                for (int i = 0; i < list.size(); i++) {
-                    buff[i] = buildEntryToValue(list.get(i))[0];
-                }
+    private EntryValue[] buildEntryValues(ExpressionCollection expressionCollection) {
+        final List<Expression> list = expressionCollection.getList();
+        final EntryValue[] entryValues = new EntryValue[list.size()];
 
-                yield buff;
-            }
-            case ExpressionIdentifier expressionIdentifier -> new EntryToValue[]{(path, data) -> switch (expressionIdentifier.getIdentifier().toLowerCase()) {
+        for (int i = 0; i < list.size(); i++) {
+            entryValues[i] = buildEntryValue(list.get(i));
+        }
+
+        return entryValues;
+    }
+
+    private EntryValue buildEntryValue(Expression expression) {
+        return switch (expression) {
+            case ExpressionIdentifier expressionIdentifier -> buildEntryValue(expressionIdentifier);
+            case ExpressionNumber expressionNumber -> buildEntryValue(expressionNumber);
+            case ExpressionString expressionString -> buildEntryValue(expressionString);
+            case ExpressionWrapper expressionWrapper -> buildEntryValue(expressionWrapper);
+            case ExpressionWrapper2 expressionWrapper2 -> buildEntryValue(expressionWrapper2);
+            default -> throw new IllegalStateException("Unexpected value: " + expression);
+        };
+    }
+
+    private EntryValue buildEntryValue(ExpressionIdentifier expression) {
+        final String identifier = expression.getIdentifier().toLowerCase();
+
+        return (path, data) -> {
+            //noinspection CodeBlock2Expr
+            return switch (identifier) {
                 case "path" -> path;
                 case "data" -> {
-                    if (data == null) {
-                        yield null;
-                    }
+                    if (data == null) yield null;
 
                     try {
                         if (data.contains(".") || data.contains(",")) {
-                            yield Float.valueOf(data);
+                            yield Float.parseFloat(data);
                         } else {
-                            yield Integer.valueOf(data);
+                            yield Integer.parseInt(data);
                         }
                     } catch (NumberFormatException ignored) {
                         yield data;
                     }
                 }
-                default -> throw new IllegalArgumentException("Unexpected value: " + expressionIdentifier.getIdentifier());
-            }};
-            case ExpressionNumber expressionNumber -> new EntryToValue[]{(path, data) -> expressionNumber.getNumber()};
-            case ExpressionString expressionString -> new EntryToValue[]{(path, data) -> expressionString.getString()};
-            case ExpressionWrapper expressionWrapper -> switch (expressionWrapper.getType()) {
-                case COUNT, SUM, AVG, MIN, MAX -> buildEntryToValue(expressionWrapper.getWrappedExpression());
-                default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
+                default -> throw new IllegalStateException("Unexpected value: " + expression.getIdentifier());
             };
-            case ExpressionWrapper2 expressionWrapper2 -> switch (expressionWrapper2.getType()) {
-                case ALIAS -> buildEntryToValue(expressionWrapper2.getWrappedExpression1());
-                case JSON_PATH -> new EntryToValue[]{(path, data) -> {
-                    final String json = String.valueOf(buildEntryToValue(expressionWrapper2.getWrappedExpression1())[0].run(path, data));
-                    final String jsonPath = String.valueOf(buildEntryToValue(expressionWrapper2.getWrappedExpression2())[0].run(path, data));
-
-                    try {
-                        return JsonPath.read(json, jsonPath);
-                    } catch (Exception ignored) {
-                        // todo log excption
-                        return null;
-                    }
-                }};
-                default -> throw new IllegalArgumentException("Unexpected value: " + expressionWrapper2.getType());
-            };
-            default -> throw new IllegalArgumentException("Unexpected value: " + expression);
         };
     }
 
-    private RowToValue[] buildRowToValue(Expression expression) {
-        switch (expression) {
-            case ExpressionCollection expressionCollection -> {
-                final List<Expression> list = expressionCollection.getList();
+    private EntryValue buildEntryValue(ExpressionNumber expression) {
+        return (path, data) -> expression.getNumber();
+    }
 
-                entryToValue = new EntryToValue[list.size()];
-                rowToValue = new RowToValue[list.size()];
+    private EntryValue buildEntryValue(ExpressionString expression) {
+        return (path, data) -> expression.getString();
+    }
 
-                for (int i = 0; i < list.size(); i++) {
-                    final ExpressionExec expression1 = new ExpressionExec(list.get(i));
+    private EntryValue buildEntryValue(ExpressionWrapper expression) {
+        return switch (expression.getType()) {
+            case COUNT, SUM, AVG, MIN, MAX -> buildEntryValue(expression.getWrappedExpression());
+            default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
+        };
+    }
 
-                    entryToValue[i] = expression1.entryToValue[0];
-                    rowToValue[i] = expression1.rowToValue[0];
+    private EntryValue buildEntryValue(ExpressionWrapper2 expression) {
+        return switch (expression.getType()) {
+            case ALIAS -> buildEntryValue(expression.getWrappedExpression1());
+            case JSON_PATH -> (path, data) -> {
+                final String json = String.valueOf(buildEntryValue(expression.getWrappedExpression1()).run(path, data));
+                final String jsonPath = String.valueOf(buildEntryValue(expression.getWrappedExpression2()).run(path, data));
+
+                try {
+                    return JsonPath.read(json, jsonPath);
+                } catch (Exception e) {
+                    // todo log exception
+                    e.printStackTrace();
+                    return null;
                 }
-            }
-            case ExpressionIdentifier expressionIdentifier -> {
-                entryToValue = new EntryToValue[]{(path, data) -> switch (expressionIdentifier.getIdentifier().toLowerCase()) {
-                    case "path" -> path;
-                    case "data" -> {
-                        if (data == null) {
-                            yield null;
-                        }
+            };
+            default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
+        };
+    }
 
-                        try {
-                            if (data.contains(".") || data.contains(",")) {
-                                yield Float.valueOf(data);
-                            } else {
-                                yield Integer.valueOf(data);
-                            }
-                        } catch (NumberFormatException ignored) {
-                            yield data;
-                        }
-                    }
-                    case null, default -> throw new IllegalArgumentException("Unexpected value: " + expressionIdentifier.getIdentifier());
-                }};
-                rowToValue = new RowToValue[]{(row, columnsNameIndex) -> row[columnsNameIndex.get(expressionIdentifier.getIdentifier())]};
-            }
-            case ExpressionNumber expressionNumber -> {
-                entryToValue = new EntryToValue[]{(path, data) -> expressionNumber.getNumber()};
-                rowToValue = new RowToValue[]{(row, columnsNameIndex) -> expressionNumber.getNumber()};
-            }
-            case ExpressionString expressionString -> {
-                entryToValue = new EntryToValue[]{(path, data) -> expressionString.getString()};
-                rowToValue = new RowToValue[]{(row, columnsNameIndex) -> expressionString.getString()};
-            }
-            case ExpressionWrapper expressionWrapper -> {
-                final ExpressionExec expression1 = new ExpressionExec(expressionWrapper.getWrappedExpression());
+    private RowValue[] buildRowValues(Expression expression) {
+        return switch (expression) {
+            case ExpressionCollection expressionCollection -> buildRowValues(expressionCollection);
+            case ExpressionIdentifier expressionIdentifier -> new RowValue[] { buildRowValue(expressionIdentifier) };
+            case ExpressionNumber expressionNumber -> new RowValue[] { buildRowValue(expressionNumber) };
+            case ExpressionString expressionString -> new RowValue[] { buildRowValue(expressionString) };
+            case ExpressionWrapper expressionWrapper -> new RowValue[] { buildRowValue(expressionWrapper) };
+            case ExpressionWrapper2 expressionWrapper2 -> new RowValue[] { buildRowValue(expressionWrapper2) };
+            default -> throw new IllegalStateException("Unexpected value: " + expression);
+        };
+    }
 
-                switch (expressionWrapper.getType()) {
-                    case COUNT, SUM, AVG, MIN, MAX -> {
-                        entryToValue = expression1.entryToValue;
-                        rowToValue = expression1.rowToValue;
-                    }
-                    default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
-                }
-            }
-            case ExpressionWrapper2 expressionWrapper2 -> {
-                final ExpressionExec expression1 = new ExpressionExec(expressionWrapper2.getWrappedExpression1());
-                final ExpressionExec expression2 = new ExpressionExec(expressionWrapper2.getWrappedExpression2());
+    private RowValue[] buildRowValues(ExpressionCollection expressionCollection) {
+        final List<Expression> list = expressionCollection.getList();
+        final RowValue[] rowValues = new RowValue[list.size()];
 
-                switch (expressionWrapper2.getType()) {
-                    case ALIAS -> {
-                        entryToValue = new ExpressionExec(expressionWrapper2.getWrappedExpression1()).entryToValue;
-                        rowToValue = new ExpressionExec(expressionWrapper2.getWrappedExpression1()).rowToValue;
-                    }
-                    case JSON_PATH -> {
-                        entryToValue = new EntryToValue[]{(path, data) -> {
-                            final String json = String.valueOf(expression1.entryToValue[0].run(path, data));
-                            final String jsonPath = String.valueOf(expression2.entryToValue[0].run(path, data));
-
-                            try {
-                                return JsonPath.read(json, jsonPath);
-                            } catch (Exception ignored) {
-                                return null;
-                            }
-                        }};
-                        rowToValue = new RowToValue[]{(row, columnsNameIndex) -> {
-                            final String json = String.valueOf(expression1.rowToValue[0].run(row, columnsNameIndex));
-                            final String jsonPath = String.valueOf(expression2.rowToValue[0].run(row, columnsNameIndex));
-
-                            try {
-                                return JsonPath.read(json, jsonPath);
-                            } catch (Exception ignored) {
-                                return null;
-                            }
-                        }};
-                    }
-                    default -> throw new IllegalArgumentException("Unexpected value: " + expressionWrapper2.getType());
-                }
-            }
-            case null -> {
-                entryToValue = null;
-                rowToValue = null;
-            }
-            default -> throw new IllegalArgumentException("Unexpected value: " + expression);
+        for (int i = 0; i < list.size(); i++) {
+            rowValues[i] = buildRowValue(list.get(i));
         }
+
+        return rowValues;
+    }
+
+    private RowValue buildRowValue(Expression expression) {
+        return switch (expression) {
+            case ExpressionIdentifier expressionIdentifier -> buildRowValue(expressionIdentifier);
+            case ExpressionNumber expressionNumber -> buildRowValue(expressionNumber);
+            case ExpressionString expressionString -> buildRowValue(expressionString);
+            case ExpressionWrapper expressionWrapper -> buildRowValue(expressionWrapper);
+            case ExpressionWrapper2 expressionWrapper2 -> buildRowValue(expressionWrapper2);
+            default -> throw new IllegalStateException("Unexpected value: " + expression);
+        };
+    }
+
+    private RowValue buildRowValue(ExpressionIdentifier expressionIdentifier) {
+        return (row, columnsNameIndex) -> row[columnsNameIndex.get(expressionIdentifier.getIdentifier())];
+    }
+
+    private RowValue buildRowValue(ExpressionNumber expressionNumber) {
+        return (row, columnsNameIndex) -> expressionNumber.getNumber();
+    }
+
+    private RowValue buildRowValue(ExpressionString expressionString) {
+        return (row, columnsNameIndex) -> expressionString.getString();
+    }
+
+    private RowValue buildRowValue(ExpressionWrapper expressionWrapper) {
+        return switch (expressionWrapper.getType()) {
+            case COUNT, SUM, AVG, MIN, MAX -> buildRowValue(expressionWrapper.getWrappedExpression());
+            default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper.getType());
+        };
+    }
+
+    private RowValue buildRowValue(ExpressionWrapper2 expressionWrapper2) {
+        return switch (expressionWrapper2.getType()) {
+            case ALIAS -> buildRowValue(expressionWrapper2.getWrappedExpression1());
+            case JSON_PATH -> (row, columnsNameIndex) -> {
+                final String json = String.valueOf(buildRowValue(expressionWrapper2.getWrappedExpression1()).run(row, columnsNameIndex));
+                final String jsonPath = String.valueOf(buildRowValue(expressionWrapper2.getWrappedExpression2()).run(row, columnsNameIndex));
+
+                try {
+                    return JsonPath.read(json, jsonPath);
+                } catch (Exception e) {
+                    // todo log exception
+                    e.printStackTrace();
+                    return null;
+                }
+            };
+            default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper2.getType());
+        };
     }
 
     public ArrayList<Object[]> entriesToRows(Map<String, String> entries) {
-        if (entryToValue == null) {
+        if (entryValue == null) {
             return new ArrayList<>();
         }
 
         final var rows = new ArrayList<Object[]>(entries.size());
 
         for (var entry : entries.entrySet()) {
-            final Object[] row = new Object[entryToValue.length];
+            final Object[] row = new Object[entryValue.length];
 
-            for (int i = 0; i < entryToValue.length; i++) {
-                row[i] = entryToValue[i].run(entry.getKey(), entry.getValue());
+            for (int i = 0; i < entryValue.length; i++) {
+                row[i] = entryValue[i].run(entry.getKey(), entry.getValue());
             }
 
             rows.add(row);
@@ -201,19 +211,21 @@ class ExpressionExec {
         return rows;
     }
 
+    @Deprecated
     public Object execute(String path, String data) {
-        if (entryToValue == null) {
+        if (entryValue == null) {
             throw new IllegalStateException("Can't convert entry to value, select statement does not contain expressions");
         }
 
-        return entryToValue[0].run(path, data);
+        return entryValue[0].run(path, data);
     }
 
+    @Deprecated
     public Object execute(Object[] row, Map<String, Integer> columnsNameIndex) {
-        if (rowToValue == null) {
+        if (rowValue == null) {
             throw new IllegalStateException("Can't convert row to value, select statement does not contain expressions");
         }
 
-        return rowToValue[0].run(row, columnsNameIndex);
+        return rowValue[0].run(row, columnsNameIndex);
     }
 }
