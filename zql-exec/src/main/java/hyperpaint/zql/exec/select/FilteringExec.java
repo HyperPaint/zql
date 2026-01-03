@@ -23,6 +23,7 @@ public class FilteringExec {
     private final EntryFiltering entryFiltering;
     private final RowFiltering rowFiltering;
 
+    // todo вынести в функции
     public FilteringExec(Condition condition) {
         switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> {
