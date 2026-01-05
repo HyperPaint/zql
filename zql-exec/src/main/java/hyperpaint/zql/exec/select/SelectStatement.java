@@ -13,9 +13,9 @@ import java.util.*;
 public class SelectStatement implements Statement {
     private final ExpressionExec expressionExec;
     private final ZnodeExec znodeExec;
-    private final FilteringExec whereFilteringExec;
+    private final FilterExec whereFilterExec;
     private final GroupingExec groupingExec;
-    private final FilteringExec havingFilteringExec;
+    private final FilterExec havingFilterExec;
     private final SortingExec sortingExec;
 
     /**
@@ -47,9 +47,9 @@ public class SelectStatement implements Statement {
 
         expressionExec = new ExpressionExec(select.getSelectExpression());
         znodeExec = new ZnodeExec(select.getFromZnode());
-        whereFilteringExec = new FilteringExec(select.getWhereCondition());
+        whereFilterExec = new FilterExec(select.getWhereCondition());
         groupingExec = new GroupingExec(columnGroupingTypes, exceptions);
-        havingFilteringExec = new FilteringExec(select.getHavingCondition());
+        havingFilterExec = new FilterExec(select.getHavingCondition());
         sortingExec = new SortingExec(columnSortingTypes);
     }
 
@@ -59,10 +59,10 @@ public class SelectStatement implements Statement {
             exceptions.clear();
 
             final var entries = znodeExec.znodesToEntries(zookeeper);
-            whereFilteringExec.execute(entries);
+            whereFilterExec.execute(entries);
             final var rows = expressionExec.entriesToRows(entries);
             groupingExec.execute(rows);
-            havingFilteringExec.execute(rows, columnNameIndexes);
+            havingFilterExec.execute(rows, columnNameIndexes);
             sortingExec.execute(rows);
 
             return new ResultSet(columnNames, columnNameIndexes, rows);

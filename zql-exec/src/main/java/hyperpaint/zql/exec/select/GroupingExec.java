@@ -11,6 +11,7 @@ class GroupingExec {
 
     private final boolean skip;
 
+    // todo rewrite to funcs
     GroupingExec(GroupingType[] columnGroupingTypes, List<Exception> exceptions) {
         this.columnGroupingTypes = columnGroupingTypes;
         this.exceptions = exceptions;
