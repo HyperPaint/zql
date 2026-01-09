@@ -9,14 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class FilterExec {
+class FilterExec {
     @FunctionalInterface
-    interface FilterEntry {
+    private interface FilterEntry {
         boolean run(String path, String data);
     }
 
     @FunctionalInterface
-    interface FilterRow {
+    private interface FilterRow {
         boolean run(Object[] row, Map<String, Integer> columnsNameIndex);
     }
 
@@ -29,20 +29,32 @@ public class FilterExec {
     }
 
     public static FilterExec get(Condition condition) {
+        if (condition == null) {
+            return null;
+        }
+
         return new FilterExec(condition);
     }
 
     public static void filterEntries(FilterExec exec, Map <String, String> entries) {
+        if (exec == null) {
+            return;
+        }
+
         entries.entrySet().removeIf(entry -> !exec.filterEntry.run(entry.getKey(), entry.getValue()));
     }
 
-    public static void filterEntries(FilterExec exec, List<Object[]> rows, Map<String, Integer> columnsNameIndex) {
+    public static void filterRows(FilterExec exec, List<Object[]> rows, Map<String, Integer> columnsNameIndex) {
+        if (exec == null) {
+            return;
+        }
+
         rows.removeIf(row -> !exec.filterRow.run(row, columnsNameIndex));
     }
 
     // region FilterEntry
 
-    static FilterEntry buildFilterEntry(Condition condition) {
+    private static FilterEntry buildFilterEntry(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterEntry(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterEntry(conditionCompositeOfExpression);
@@ -87,7 +99,7 @@ public class FilterExec {
 
     // region FilterRow
 
-    static FilterRow buildFilterRow(Condition condition) {
+    private static FilterRow buildFilterRow(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterRow(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterRow(conditionCompositeOfExpression);

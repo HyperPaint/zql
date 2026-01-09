@@ -1,38 +1,56 @@
 package hyperpaint.zql.exec.select;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
 class SortingExec {
-    private Comparator<Object[]> rowComparator = null;
+    private Comparator<Object[]> comparator = null;
 
-    SortingExec(SortingType[] columnSortingTypes) {
-        if (Arrays.stream(columnSortingTypes).allMatch(type -> type == SortingType.NONE)) {
-            return;
-        }
+    private final @Getter boolean skip;
 
-        for (int i = 0; i < columnSortingTypes.length; i++) {
-            switch (columnSortingTypes[i]) {
-                case ASCENDANT -> {
-                    if (rowComparator == null) {
-                        rowComparator = createComparator(i);
-                    } else {
-                        rowComparator = rowComparator.thenComparing(createComparator(i));
+    private SortingExec(SortingType[] columnSortingTypes) {
+        skip = Arrays.stream(columnSortingTypes).allMatch(SortingType::isNotSorting);
+
+        if (skip) {
+            comparator = null;
+        } else {
+            for (int i = 0; i < columnSortingTypes.length; i++) {
+                switch (columnSortingTypes[i]) {
+                    case ASCENDANT -> {
+                        if (comparator == null) {
+                            comparator = buildExecRow(i);
+                        } else {
+                            comparator = comparator.thenComparing(buildExecRow(i));
+                        }
                     }
-                }
-                case DESCENDANT -> {
-                    if (rowComparator == null) {
-                        rowComparator = createComparator(i).reversed();
-                    } else {
-                        rowComparator = rowComparator.thenComparing(createComparator(i)).reversed();
+                    case DESCENDANT -> {
+                        if (comparator == null) {
+                            comparator = buildExecRow(i).reversed();
+                        } else {
+                            comparator = comparator.thenComparing(buildExecRow(i)).reversed();
+                        }
                     }
                 }
             }
         }
     }
 
-    private Comparator<Object[]> createComparator(int index) {
+    public static SortingExec get(SortingType[] columnSortingTypes) {
+        return new SortingExec(columnSortingTypes);
+    }
+
+    public static void sortRows(SortingExec exec, List<Object[]> rows) {
+        if (exec.skip) {
+            return;
+        }
+
+        rows.sort(exec.comparator);
+    }
+
+    private Comparator<Object[]> buildExecRow(int index) {
         return (first, second) -> {
             if (first[index] != null) {
                 if (second[index] != null) {
@@ -63,11 +81,5 @@ class SortingExec {
                 }
             }
         };
-    }
-
-    public void execute(List<Object[]> rows) {
-        if (rowComparator != null) {
-            rows.sort(rowComparator);
-        }
     }
 }

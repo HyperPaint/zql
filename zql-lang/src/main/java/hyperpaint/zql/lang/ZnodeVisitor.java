@@ -10,57 +10,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-class ZnodeVisitor extends ZQLBaseVisitor<Znode> {
+class ZnodeVisitor extends ZQLBaseVisitor<ZNode> {
     static final ZnodeVisitor INSTANCE = new ZnodeVisitor();
 
     @Override
-    public Znode visitZnodesComma(ZQLParser.ZnodesCommaContext ctx) {
-        final Znode left = visit(ctx.getChild(0));
-        final Znode right = visit(ctx.getChild(2));
+    public ZNode visitZnodesComma(ZQLParser.ZnodesCommaContext ctx) {
+        final ZNode left = visit(ctx.getChild(0));
+        final ZNode right = visit(ctx.getChild(2));
 
-        if (left.getType() == Znode.Type.COLLECTION && right.getType() == Znode.Type.COLLECTION) {
-            final ZnodeCollection leftCollection = (ZnodeCollection) left;
-            final ZnodeCollection rightCollection = (ZnodeCollection) right;
+        if (left.getType() == ZNode.Type.COLLECTION && right.getType() == ZNode.Type.COLLECTION) {
+            final ZNodeCollection leftCollection = (ZNodeCollection) left;
+            final ZNodeCollection rightCollection = (ZNodeCollection) right;
             leftCollection.getList().addAll(rightCollection.getList());
             return leftCollection;
-        } else if (left.getType() == Znode.Type.COLLECTION) {
-            final ZnodeCollection leftCollection = (ZnodeCollection) left;
+        } else if (left.getType() == ZNode.Type.COLLECTION) {
+            final ZNodeCollection leftCollection = (ZNodeCollection) left;
             leftCollection.getList().add(right);
             return leftCollection;
-        } else if (right.getType() == Znode.Type.COLLECTION) {
-            final ZnodeCollection rightCollection = (ZnodeCollection) right;
+        } else if (right.getType() == ZNode.Type.COLLECTION) {
+            final ZNodeCollection rightCollection = (ZNodeCollection) right;
             rightCollection.getList().add(left);
             return rightCollection;
         } else {
-            final List<Znode> list = new ArrayList<>();
+            final List<ZNode> list = new ArrayList<>();
             list.add(left);
             list.add(right);
-            return new ZnodeCollection(list);
+            return new ZNodeCollection(list);
         }
     }
 
     @Override
-    public Znode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
+    public ZNode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
         return visit(ctx.znode());
     }
 
     @Override
-    public Znode visitZnode(ZQLParser.ZnodeContext ctx) {
+    public ZNode visitZnode(ZQLParser.ZnodeContext ctx) {
         return visit(ctx.getChild(0));
     }
 
     @Override
-    public Znode visitZnodeList(ZQLParser.ZnodeListContext ctx) {
-        return new ZnodeList(visit(ctx.children.getLast()));
+    public ZNode visitZnodeList(ZQLParser.ZnodeListContext ctx) {
+        return new ZNodeList(visit(ctx.children.getLast()));
     }
 
     @Override
-    public Znode visitZnodePath(ZQLParser.ZnodePathContext ctx) {
-        return new ZnodePath(ctx.getText());
+    public ZNode visitZnodePath(ZQLParser.ZnodePathContext ctx) {
+        return new ZNodePath(ctx.getText());
     }
 
     @Override
-    public Znode visitZnodeRoot(ZQLParser.ZnodeRootContext ctx) {
-        return new ZnodePath(ctx.getText());
+    public ZNode visitZnodeRoot(ZQLParser.ZnodeRootContext ctx) {
+        return new ZNodePath(ctx.getText());
     }
 }

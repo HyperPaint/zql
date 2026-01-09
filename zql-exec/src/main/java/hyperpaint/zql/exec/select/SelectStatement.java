@@ -11,8 +11,8 @@ import org.apache.zookeeper.ZooKeeper;
 import java.util.*;
 
 public class SelectStatement implements Statement {
-    private final ExpressionExec expressionExec;
-    private final ZnodeExec znodeExec;
+    private final ExpressionExec[] expressionExecs;
+    private final ZNodeExec[] zNodeExecs;
     private final FilterExec whereFilterExec;
     private final GroupingExec groupingExec;
     private final FilterExec havingFilterExec;
@@ -22,6 +22,7 @@ public class SelectStatement implements Statement {
      * Наименования полей
      */
     private String[] columnNames;
+
     /**
      * Индексы наименований полей
      */
@@ -37,33 +38,26 @@ public class SelectStatement implements Statement {
      */
     private SortingType[] columnSortingTypes;
 
-    /**
-     * Ошибки возникшие во время исполнения
-     */
-    private final List<Exception> exceptions = new LinkedList<>();
-
     public SelectStatement(@NonNull Select select) throws ZQLException {
         analyze(select);
 
-        expressionExec = new ExpressionExec(select.getSelectExpression());
-        znodeExec = new ZnodeExec(select.getFromZnode());
-        whereFilterExec = new FilterExec(select.getWhereCondition());
-        groupingExec = new GroupingExec(columnGroupingTypes, exceptions);
-        havingFilterExec = new FilterExec(select.getHavingCondition());
-        sortingExec = new SortingExec(columnSortingTypes);
+        expressionExecs = ExpressionExec.get(select.getSelectExpression());
+        zNodeExecs = ZNodeExec.get(select.getFromZnode());
+        whereFilterExec = FilterExec.get(select.getWhereCondition());
+        groupingExec = GroupingExec.get(columnGroupingTypes);
+        havingFilterExec = FilterExec.get(select.getHavingCondition());
+        sortingExec = SortingExec.get(columnSortingTypes);
     }
 
     @Override
     public ResultSet execute(ZooKeeper zookeeper) throws ZQLException {
         try {
-            exceptions.clear();
-
-            final var entries = znodeExec.znodesToEntries(zookeeper);
-            whereFilterExec.execute(entries);
-            final var rows = expressionExec.entriesToRows(entries);
-            groupingExec.execute(rows);
-            havingFilterExec.execute(rows, columnNameIndexes);
-            sortingExec.execute(rows);
+            final var entries = ZNodeExec.convertZNodesToEntries(zNodeExecs, zookeeper);
+            FilterExec.filterEntries(whereFilterExec, entries);
+            final var rows = ExpressionExec.convertEntriesToRows(expressionExecs, entries);
+            GroupingExec.groupRows(groupingExec, rows);
+            FilterExec.filterRows(havingFilterExec, rows, columnNameIndexes);
+            SortingExec.sortRows(sortingExec, rows);
 
             return new ResultSet(columnNames, columnNameIndexes, rows);
         } catch (Exception e) {

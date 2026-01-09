@@ -6,10 +6,10 @@ import lombok.ToString;
 
 @Getter
 @ToString(callSuper = true)
-public class ZnodePath extends Znode {
+public class ZNodePath extends ZNode {
     private final String path;
 
-    public ZnodePath(@NonNull String path) {
+    public ZNodePath(@NonNull String path) {
         super(Type.PATH);
 
         this.path = path;

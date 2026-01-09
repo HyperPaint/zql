@@ -9,7 +9,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class Znode extends Component {
+public abstract class ZNode extends Component {
     public enum Type {
         COLLECTION,
 

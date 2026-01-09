@@ -6,7 +6,7 @@ import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.expression.Expression;
 import hyperpaint.zql.lang.statement.Select;
 import hyperpaint.zql.lang.statement.Statement;
-import hyperpaint.zql.lang.znode.Znode;
+import hyperpaint.zql.lang.znode.ZNode;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -22,7 +22,7 @@ class StatementVisitor extends ZQLBaseVisitor<Statement> {
     @Override
     public Statement visitSelect(ZQLParser.SelectContext ctx) {
         final Expression selectExpressions =  ctx.SELECT_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.selectExpressions()) : null;
-        final Znode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.fromZnodes()) : null;
+        final ZNode fromZnodes = ctx.FROM_WORD() != null ? ZnodeVisitor.INSTANCE.visit(ctx.fromZnodes()) : null;
         final Condition whereConditions = ctx.WHERE_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.whereConditions()) : null;
         final Expression groupByExpressions = ctx.GROUP_BY_WORD() != null ? ExpressionVisitor.INSTANCE.visit(ctx.groupByExpressions()) : null;
         final Condition havingConditions = ctx.HAVING_WORD() != null ? ConditionVisitor.INSTANCE.visit(ctx.havingConditions()) : null;

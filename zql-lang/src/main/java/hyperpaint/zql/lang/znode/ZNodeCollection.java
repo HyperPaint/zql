@@ -8,10 +8,10 @@ import java.util.List;
 
 @Getter
 @ToString(callSuper = true)
-public class ZnodeCollection extends Znode {
-    private final List<Znode> list;
+public class ZNodeCollection extends ZNode {
+    private final List<ZNode> list;
 
-    public ZnodeCollection(@NonNull List<Znode> list) {
+    public ZNodeCollection(@NonNull List<ZNode> list) {
         super(Type.COLLECTION);
 
         this.list = list;

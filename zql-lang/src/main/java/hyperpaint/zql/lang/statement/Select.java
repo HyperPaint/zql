@@ -2,7 +2,7 @@ package hyperpaint.zql.lang.statement;
 
 import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.expression.Expression;
-import hyperpaint.zql.lang.znode.Znode;
+import hyperpaint.zql.lang.znode.ZNode;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 @ToString
 public class Select extends Statement {
     private final Expression selectExpression;
-    private final Znode fromZnode;
+    private final ZNode fromZnode;
     private final Condition whereCondition;
     private final Expression groupByExpression;
     private final Condition havingCondition;
@@ -20,7 +20,7 @@ public class Select extends Statement {
 
     public Select(
             Expression selectExpression,
-            Znode fromZnode,
+            ZNode fromZnode,
             Condition whereCondition,
             Expression groupByExpression,
             Condition havingCondition,

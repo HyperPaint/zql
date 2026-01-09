@@ -1,5 +1,8 @@
 package hyperpaint.zql.exec.select;
 
+import hyperpaint.zql.lang.condition.Condition;
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -7,35 +10,40 @@ import java.util.Map;
 
 class GroupingExec {
     private final GroupingType[] columnGroupingTypes;
-    private final List<Exception> exceptions;
 
-    private final boolean skip;
+    private final @Getter boolean skip;
 
-    // todo rewrite to funcs
-    GroupingExec(GroupingType[] columnGroupingTypes, List<Exception> exceptions) {
-        this.columnGroupingTypes = columnGroupingTypes;
-        this.exceptions = exceptions;
+    private GroupingExec(GroupingType[] columnGroupingTypes) {
+        this.skip = Arrays.stream(columnGroupingTypes).allMatch(GroupingType::isNotGrouping);
 
-        skip = Arrays.stream(columnGroupingTypes).allMatch(type -> type == GroupingType.NONE);
+        if (skip) {
+            this.columnGroupingTypes = null;
+        } else {
+            this.columnGroupingTypes = columnGroupingTypes;
+        }
     }
 
-    void execute(List<Object[]> rows) {
-        if (skip) {
+    public static GroupingExec get(GroupingType[] columnGroupingTypes) {
+        return new GroupingExec(columnGroupingTypes);
+    }
+
+    public static void groupRows(GroupingExec exec, List<Object[]> rows) {
+        if (exec.skip) {
             return;
         }
 
-        final Map<GroupingWrapper, GroupingWrapper> groups = new HashMap<>();
-        final GroupingWrapper current = new GroupingWrapper(columnGroupingTypes, exceptions);
+        final Map<GroupingContainer, GroupingContainer> groups = new HashMap<>();
+        final GroupingContainer current = new GroupingContainer(exec.columnGroupingTypes);
 
         rows.removeIf(row -> {
             current.setRow(row);
 
-            GroupingWrapper buff = groups.get(current);
+            GroupingContainer buff = groups.get(current);
             if (buff != null) {
                 buff.add(current);
                 return true;
             } else {
-                buff = new GroupingWrapper(current.getRow(), columnGroupingTypes, exceptions);
+                buff = new GroupingContainer(current.getRow(), exec.columnGroupingTypes);
                 groups.put(buff, buff);
                 return false;
             }

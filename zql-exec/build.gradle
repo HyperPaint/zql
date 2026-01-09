@@ -19,6 +19,9 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
+    // Logger
+    api "org.apache.logging.log4j:log4j-slf4j-impl:${logger_version}"
+
     // ZooKeeper
     api "org.apache.zookeeper:zookeeper:${zookeeper_version}"
 

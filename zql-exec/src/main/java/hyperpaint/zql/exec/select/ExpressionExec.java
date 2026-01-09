@@ -28,6 +28,10 @@ class ExpressionExec {
     }
 
     public static ExpressionExec[] get(Expression expression) {
+        if (expression == null) {
+            return null;
+        }
+
         if (expression instanceof ExpressionCollection expressionCollection) {
             final var list = expressionCollection.getList();
             final var result = new ExpressionExec[list.size()];
@@ -45,15 +49,17 @@ class ExpressionExec {
     public static List<Object[]> convertEntriesToRows(ExpressionExec[] execs, Map<String, String> entries) {
         final var rows = Collections.synchronizedList(new ArrayList<Object[]>(entries.size()));
 
-        entries.entrySet().parallelStream().forEach(entry -> {
-            final Object[] row = new Object[execs.length];
+        if (execs != null) {
+            entries.entrySet().parallelStream().forEach(entry -> {
+                final Object[] row = new Object[execs.length];
 
-            for (int i = 0; i < execs.length; i++) {
-                row[i] = execs[i].execEntry.run(entry.getKey(), entry.getValue());
-            }
+                for (int i = 0; i < execs.length; i++) {
+                    row[i] = execs[i].execEntry.run(entry.getKey(), entry.getValue());
+                }
 
-            rows.add(row);
-        });
+                rows.add(row);
+            });
+        }
 
         return rows;
     }

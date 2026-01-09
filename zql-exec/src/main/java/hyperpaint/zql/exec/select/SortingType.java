@@ -3,7 +3,7 @@ package hyperpaint.zql.exec.select;
 import hyperpaint.zql.lang.expression.Expression;
 import hyperpaint.zql.lang.expression.ExpressionWrapper;
 
-public enum SortingType {
+enum SortingType {
     NONE,
     ASCENDANT,
     DESCENDANT;
@@ -22,5 +22,13 @@ public enum SortingType {
             case ORDER_BY_DESC -> SortingType.DESCENDANT;
             default -> SortingType.NONE;
         };
+    }
+
+    public boolean isNotSorting() {
+        return this == NONE;
+    }
+
+    public boolean isSorting() {
+        return this != NONE;
     }
 }

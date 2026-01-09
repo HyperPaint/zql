@@ -6,10 +6,10 @@ import lombok.ToString;
 
 @Getter
 @ToString(callSuper = true)
-public class ZnodeList extends Znode {
-    private final Znode wrappedZnode;
+public class ZNodeList extends ZNode {
+    private final ZNode wrappedZnode;
 
-    public ZnodeList(@NonNull Znode znode) {
+    public ZNodeList(@NonNull ZNode znode) {
         super(Type.LIST);
 
         this.wrappedZnode = znode;

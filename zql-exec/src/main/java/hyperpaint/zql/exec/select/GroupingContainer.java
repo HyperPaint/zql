@@ -3,29 +3,28 @@ package hyperpaint.zql.exec.select;
 import hyperpaint.zql.lang.ZQLException;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.stream.IntStream;
 
-class GroupingWrapper {
+@Slf4j
+class GroupingContainer {
     private @Getter @Setter Object[] row;
-
     private final GroupingType[] types;
-    private final List<Exception> exceptions;
 
     private int avgCounter = 0;
 
-    GroupingWrapper(GroupingType[] types, List<Exception> exceptions) {
-        this(null, types, exceptions);
+    public GroupingContainer(GroupingType[] types) {
+        this(null, types);
     }
 
-    GroupingWrapper(Object[] row, GroupingType[] types, List<Exception> exceptions) {
+    public GroupingContainer(Object[] row, GroupingType[] types) {
         this.row = row;
         this.types = types;
-        this.exceptions = exceptions;
     }
 
-    void add(GroupingWrapper another) {
+    public void add(GroupingContainer another) {
         for (int i = 0; i < row.length; i++) {
             switch (types[i]) {
                 case NONE -> {
@@ -40,7 +39,7 @@ class GroupingWrapper {
                         continue;
                     }
 
-                    exceptions.add(new ZQLException("Grouping rule COUNT contains non-number value, skipped: " + Arrays.toString(row)));
+                    log.warn("Grouping rule count contains non-number value, skipped: {}", Arrays.toString(row));
                 }
                 case SUM -> {
                     if (row[i] instanceof Integer value1) {
@@ -61,7 +60,7 @@ class GroupingWrapper {
                         }
                     }
 
-                    exceptions.add(new ZQLException("Grouping rule SUM contains non-number value, skipped: " + Arrays.toString(row)));
+                    log.warn("Grouping rule sum contains non-number value, skipped: {}", Arrays.toString(row));
                 }
                 case AVG -> {
                     if (row[i] instanceof Integer value1) {
@@ -82,7 +81,7 @@ class GroupingWrapper {
                         }
                     }
 
-                    exceptions.add(new ZQLException("Grouping rule AVG contains non-number value, skipped: " + Arrays.toString(row)));
+                    log.warn("Grouping rule avg contains non-number value, skipped: {}", Arrays.toString(row));
                 }
                 case MIN -> {
                     if (row[i] instanceof Integer value1) {
@@ -103,7 +102,7 @@ class GroupingWrapper {
                         }
                     }
 
-                    exceptions.add(new ZQLException("Grouping rule MIN contains non-number value, skipped: " + Arrays.toString(row)));
+                    log.warn("Grouping rule min contains non-number value, skipped: {}", Arrays.toString(row));
                 }
                 case MAX -> {
                     if (row[i] instanceof Integer value1) {
@@ -124,7 +123,7 @@ class GroupingWrapper {
                         }
                     }
 
-                    exceptions.add(new ZQLException("Grouping rule MAX contains non-number value, skipped: " + Arrays.toString(row)));
+                    log.warn("Grouping rule max contains non-number value, skipped: {}", Arrays.toString(row));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + types[i]);
             }
@@ -133,11 +132,11 @@ class GroupingWrapper {
 
     @Override
     public int hashCode() {
-        return IntStream.range(0, row.length).map(i -> types[i] == GroupingType.NONE ? row[i].hashCode() : 0).sum();
+        return IntStream.range(0, row.length).parallel().map(i -> types[i] == GroupingType.NONE ? row[i].hashCode() : 0).sum();
     }
 
     @Override
     public boolean equals(Object object) {
-        return object instanceof GroupingWrapper another && IntStream.range(0, row.length).allMatch(i -> types[i] != GroupingType.NONE || Objects.equals(row[i], another.row[i]));
+        return object instanceof GroupingContainer another && IntStream.range(0, row.length).parallel().allMatch(i -> types[i] != GroupingType.NONE || Objects.equals(row[i], another.row[i]));
     }
 }

@@ -4,7 +4,7 @@ import hyperpaint.zql.lang.expression.Expression;
 import hyperpaint.zql.lang.expression.ExpressionWrapper;
 import hyperpaint.zql.lang.expression.ExpressionWrapper2;
 
-public enum GroupingType {
+enum GroupingType {
     NONE,
     COUNT,
     SUM,
