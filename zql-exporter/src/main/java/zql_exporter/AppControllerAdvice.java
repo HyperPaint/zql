@@ -9,15 +9,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
-public class AppControllerExceptionHandler {
+public class AppControllerAdvice {
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleException(Exception e) {
+    public ResponseEntity<String> handle(Exception e) {
         log.error(e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
     }
 
     @ExceptionHandler(ZQLException.class)
-    public ResponseEntity<String> handleException(ZQLException e) {
+    public ResponseEntity<String> handle(ZQLException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }

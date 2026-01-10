@@ -110,7 +110,7 @@ class ZNodeExec {
             List<String> prev, next = zooKeeper.getChildren(path, null).parallelStream().map(s -> path.equals("/") ? path + s : path + "/" + s).toList();
 
             /* Промежуточные узлы */
-            for (int i = 1; i < depth - 1; i++) {
+            for (int i = 1; i < depth; i++) {
                 prev = next;
 
                 for (var item : prev) {

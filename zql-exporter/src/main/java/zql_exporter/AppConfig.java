@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 @Configuration
-public class Config {
+public class AppConfig {
     @Bean
     public String zookeeperHost(Environment environment) throws IllegalStateException {
         return environment.getProperty("zql-exporter.zookeeper.host", "localhost");
