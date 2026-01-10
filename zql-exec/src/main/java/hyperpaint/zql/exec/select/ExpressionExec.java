@@ -2,12 +2,14 @@ package hyperpaint.zql.exec.select;
 
 import com.jayway.jsonpath.JsonPath;
 import hyperpaint.zql.lang.expression.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 class ExpressionExec {
     @FunctionalInterface
     interface ExecEntry {
@@ -47,6 +49,8 @@ class ExpressionExec {
     }
 
     public static List<Object[]> convertEntriesToRows(ExpressionExec[] execs, Map<String, String> entries) {
+        final long startMilliseconds = System.currentTimeMillis();
+
         final var rows = Collections.synchronizedList(new ArrayList<Object[]>(entries.size()));
 
         if (execs != null) {
@@ -59,6 +63,13 @@ class ExpressionExec {
 
                 rows.add(row);
             });
+        }
+
+        final long diffMilliseconds = System.currentTimeMillis() - startMilliseconds;
+        if (log.isDebugEnabled()) {
+            log.debug("Converting entries to rows took {} millis", diffMilliseconds);
+        } else if (diffMilliseconds > 1000) {
+            log.warn("Converting entries to rows took too long: {} millis", diffMilliseconds);
         }
 
         return rows;
@@ -127,8 +138,8 @@ class ExpressionExec {
                 try {
                     return JsonPath.read(json, jsonPath);
                 } catch (Exception e) {
-                    // todo log exception
-                    e.printStackTrace();
+                    log.warn("Can't execute entry expression 'json_path(\"{}\", \"{}\")', skipped", json, jsonPath);
+                    log.warn(e.getMessage(), e);
                     return null;
                 }
             };
@@ -180,8 +191,8 @@ class ExpressionExec {
                 try {
                     return JsonPath.read(json, jsonPath);
                 } catch (Exception e) {
-                    // todo log exception
-                    e.printStackTrace();
+                    log.warn("Can't execute row expression 'json_path(\"{}\", \"{}\")', skipped", json, jsonPath);
+                    log.warn(e.getMessage(), e);
                     return null;
                 }
             };

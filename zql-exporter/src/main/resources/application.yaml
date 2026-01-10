@@ -13,11 +13,11 @@ zql-exporter:
       trust-store-location: truststore.jks
       trust-store-password: password
       hostname-verification: true
-    secret:
-      enabled: false
-      # Не обязательны при enabled: false
-      value: password
   exporter:
     metrics:
 
-
+logging:
+  level:
+    root: "info"
+    hyperpaint.zql: "debug"
+    org.apache.zookeeper: "warn"

@@ -142,14 +142,4 @@ public class Config {
 
         return socket;
     }
-
-    @Bean
-    public boolean secretEnabled(Environment environment) {
-        return Boolean.parseBoolean(environment.getProperty("zql-exporter.zookeeper.secret.enabled", "false"));
-    }
-
-    @Bean
-    public String secretValue(Environment environment) {
-        return environment.getProperty("zql-exporter.zookeeper.secret.value", "password");
-    }
 }

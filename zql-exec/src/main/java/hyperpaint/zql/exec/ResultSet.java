@@ -1,5 +1,7 @@
 package hyperpaint.zql.exec;
 
+import hyperpaint.zql.exec.select.GroupingTypes;
+import hyperpaint.zql.exec.select.SortingTypes;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -9,8 +11,12 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public class ResultSet {
-    private String[] columns;
-    private Map<String, Integer> columnsIndex;
+    private String[] columnNames;
+    private Map<String, Integer> columnsNameIndexes;
+
+//    private GroupingTypes[] columnGroupingTypes;
+//
+//    private SortingTypes[] columnSortingTypes;
 
     private final List<Object[]> rows;
 }

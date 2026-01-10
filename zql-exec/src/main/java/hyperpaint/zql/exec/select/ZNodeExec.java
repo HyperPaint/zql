@@ -4,12 +4,15 @@ import hyperpaint.zql.lang.znode.ZNode;
 import hyperpaint.zql.lang.znode.ZNodeCollection;
 import hyperpaint.zql.lang.znode.ZNodePath;
 import hyperpaint.zql.lang.znode.ZNodeList;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 class ZNodeExec {
     @FunctionalInterface
     interface ExecEntry {
@@ -42,12 +45,22 @@ class ZNodeExec {
     }
 
     public static Map<String, String> convertZNodesToEntries(ZNodeExec[] execs, ZooKeeper zooKeeper) throws Exception {
+        final long startMilliseconds = System.currentTimeMillis();
+
         final var entries = new HashMap<String, String>();
 
         if (execs != null) {
+            // todo parallel
             for (var exec : execs) {
                 entries.putAll(exec.execEntry.run(zooKeeper));
             }
+        }
+
+        final long diffMilliseconds = System.currentTimeMillis() - startMilliseconds;
+        if (log.isDebugEnabled()) {
+            log.debug("Converting ZNodes to entries took {} millis", diffMilliseconds);
+        } else if (diffMilliseconds > 1000) {
+            log.warn("Converting ZNodes to entries took too long: {} millis", diffMilliseconds);
         }
 
         return entries;
@@ -67,61 +80,50 @@ class ZNodeExec {
         return zooKeeper -> {
             final Map<String, String> entries = new HashMap<>();
 
-            /* Получить изначальный путь и количество ls */
+            /* Получить глубину и базовый путь */
 
+            int depth = 1;
             final String path;
 
-            int ls = 1;
-            ZNode buffZNode = zNode.getWrappedZnode();
+            {
+                ZNode buff = zNode.getWrappedZnode();
 
-            main:
-            while (true) {
-                switch (buffZNode.getType()) {
-                    case LIST -> {
-                        ls++;
-                        buffZNode = ((ZNodeList) buffZNode).getWrappedZnode();
+                loop:
+                while (true) {
+                    switch (buff.getType()) {
+                        case LIST -> {
+                            buff = ((ZNodeList) buff).getWrappedZnode();
+                            depth++;
+                        }
+                        case PATH -> {
+                            path = ((ZNodePath) buff).getPath();
+                            break loop;
+                        }
+                        default -> throw new IllegalStateException("Unexpected value: " + buff.getType());
                     }
-                    case PATH -> {
-                        path = ((ZNodePath) buffZNode).getPath();
-                        break main;
-                    }
-                    default -> throw new IllegalStateException("Unexpected value: " + buffZNode.getType());
                 }
             }
 
-            /* Получить znode вместе с данными */
+            /* Получить ZNode вместе с данными */
 
-            List<String> prev, next = null;
+            /* Начальные узлы */
+            List<String> prev, next = zooKeeper.getChildren(path, null).parallelStream().map(s -> path.equals("/") ? path + s : path + "/" + s).toList();
 
-            for (int i = 0; i < ls; i++) {
-                /* Корневой znode */
-                if (i == 0) {
-                    next = zooKeeper.getChildren(path, null).stream().map(s -> path.equals("/") ? path + s : path + "/" + s).toList();
+            /* Промежуточные узлы */
+            for (int i = 1; i < depth - 1; i++) {
+                prev = next;
+
+                for (var item : prev) {
+                    next = zooKeeper.getChildren(item, null).parallelStream().map(s -> item.equals("/") ? item + s : item + "/" + s).toList();
                 }
+            }
 
-                /* Промежуточные znode */
-                if (i != ls - 1) {
-                    prev = next;
-                    next = new ArrayList<>();
-
-                    for (var item : prev) {
-                        next.addAll(zooKeeper.getChildren(item, null).stream().map(s -> item.equals("/") ? item + s : item + "/" + s).toList());
-                    }
-                }
-
-                /* Необходимая глубина znode */
-                if (i == ls - 1) {
-                    prev = next;
-                    for (var item : prev) {
-                        final boolean exists = zooKeeper.exists(item, null) != null;
-
-                        if (exists) {
-                            final byte[] bytes = zooKeeper.getData(item, null, null);
-                            final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
-                            entries.put(item, data);
-                        }
-                    }
-                }
+            /* Конечные узлы */
+            // todo parallel
+            for (var item : next) {
+                final byte[] bytes = zooKeeper.getData(item, null, null);
+                final String data = bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
+                entries.put(item, data);
             }
 
             return entries;

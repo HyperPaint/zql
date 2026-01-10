@@ -1,18 +1,20 @@
 package hyperpaint.zql.exec.select;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 class SortingExec {
     private Comparator<Object[]> comparator = null;
 
     private final @Getter boolean skip;
 
-    private SortingExec(SortingType[] columnSortingTypes) {
-        skip = Arrays.stream(columnSortingTypes).allMatch(SortingType::isNotSorting);
+    private SortingExec(SortingTypes[] columnSortingTypes) {
+        skip = Arrays.stream(columnSortingTypes).allMatch(SortingTypes::isNotSorting);
 
         if (skip) {
             comparator = null;
@@ -38,7 +40,7 @@ class SortingExec {
         }
     }
 
-    public static SortingExec get(SortingType[] columnSortingTypes) {
+    public static SortingExec get(SortingTypes[] columnSortingTypes) {
         return new SortingExec(columnSortingTypes);
     }
 
@@ -47,7 +49,16 @@ class SortingExec {
             return;
         }
 
+        final long startMilliseconds = System.currentTimeMillis();
+
         rows.sort(exec.comparator);
+
+        final long diffMilliseconds = System.currentTimeMillis() - startMilliseconds;
+        if (log.isDebugEnabled()) {
+            log.debug("Grouping rows took {} millis", diffMilliseconds);
+        } else if (diffMilliseconds > 1000) {
+            log.warn("Grouping rows took too long: {} millis", diffMilliseconds);
+        }
     }
 
     private Comparator<Object[]> buildExecRow(int index) {

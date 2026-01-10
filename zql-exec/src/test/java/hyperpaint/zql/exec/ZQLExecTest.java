@@ -10,7 +10,7 @@ public class ZQLExecTest {
             final Statement statement = Statement.createStatement("select sum(data) from /, ls//, ls/ls//, ls/ls/ls//");
             final ResultSet resultSet = statement.execute(connection);
 
-            for (var item : resultSet.getColumns()) {
+            for (var item : resultSet.getColumnNames()) {
                 System.out.print(item + "\t");
             }
 

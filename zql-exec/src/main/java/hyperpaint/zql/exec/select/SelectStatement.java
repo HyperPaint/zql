@@ -6,16 +6,18 @@ import hyperpaint.zql.lang.ZQLException;
 import hyperpaint.zql.lang.expression.*;
 import hyperpaint.zql.lang.statement.Select;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.util.*;
 
+@Slf4j
 public class SelectStatement implements Statement {
     private final ExpressionExec[] expressionExecs;
     private final ZNodeExec[] zNodeExecs;
-    private final FilterExec whereFilterExec;
+    private final FilteringExec whereFilteringExec;
     private final GroupingExec groupingExec;
-    private final FilterExec havingFilterExec;
+    private final FilteringExec havingFilteringExec;
     private final SortingExec sortingExec;
 
     /**
@@ -31,21 +33,21 @@ public class SelectStatement implements Statement {
     /**
      * Тип группировки в полях
      */
-    private GroupingType[] columnGroupingTypes;
+    private GroupingTypes[] columnGroupingTypes;
 
     /**
      * Тип сортировки в полях
      */
-    private SortingType[] columnSortingTypes;
+    private SortingTypes[] columnSortingTypes;
 
     public SelectStatement(@NonNull Select select) throws ZQLException {
         analyze(select);
 
         expressionExecs = ExpressionExec.get(select.getSelectExpression());
-        zNodeExecs = ZNodeExec.get(select.getFromZnode());
-        whereFilterExec = FilterExec.get(select.getWhereCondition());
+        zNodeExecs = ZNodeExec.get(select.getFromZNode());
+        whereFilteringExec = FilteringExec.get(select.getWhereCondition());
         groupingExec = GroupingExec.get(columnGroupingTypes);
-        havingFilterExec = FilterExec.get(select.getHavingCondition());
+        havingFilteringExec = FilteringExec.get(select.getHavingCondition());
         sortingExec = SortingExec.get(columnSortingTypes);
     }
 
@@ -53,10 +55,10 @@ public class SelectStatement implements Statement {
     public ResultSet execute(ZooKeeper zookeeper) throws ZQLException {
         try {
             final var entries = ZNodeExec.convertZNodesToEntries(zNodeExecs, zookeeper);
-            FilterExec.filterEntries(whereFilterExec, entries);
+            FilteringExec.filterEntries(whereFilteringExec, entries);
             final var rows = ExpressionExec.convertEntriesToRows(expressionExecs, entries);
             GroupingExec.groupRows(groupingExec, rows);
-            FilterExec.filterRows(havingFilterExec, rows, columnNameIndexes);
+            FilteringExec.filterRows(havingFilteringExec, rows, columnNameIndexes);
             SortingExec.sortRows(sortingExec, rows);
 
             return new ResultSet(columnNames, columnNameIndexes, rows);
@@ -67,7 +69,7 @@ public class SelectStatement implements Statement {
 
     private void analyze(Select select) throws ZQLException {
         // Проверка при отсутствии select
-        if (!select.hasSelectExpression() && select.hasFromZnode()) {
+        if (!select.hasSelectExpression() && select.hasFromZNode()) {
             throw new ZQLException("Select statement not contains select expressions but contains from znodes");
         }
 
@@ -88,19 +90,19 @@ public class SelectStatement implements Statement {
         }
 
         // Проверка при отсутствии znode
-        if (!select.hasFromZnode() && select.hasWhereCondition()) {
+        if (!select.hasFromZNode() && select.hasWhereCondition()) {
             throw new ZQLException("Select statement not contains from znode but contains where conditions");
         }
 
-        if (!select.hasFromZnode() && select.hasGroupByExpression()) {
+        if (!select.hasFromZNode() && select.hasGroupByExpression()) {
             throw new ZQLException("Select statement not contains from znode but contains group by expressions");
         }
 
-        if (!select.hasFromZnode() && select.hasHavingCondition()) {
+        if (!select.hasFromZNode() && select.hasHavingCondition()) {
             throw new ZQLException("Select statement not contains from znode but contains having conditions");
         }
 
-        if (!select.hasFromZnode() && select.hasOrderByExpression()) {
+        if (!select.hasFromZNode() && select.hasOrderByExpression()) {
             throw new ZQLException("Select statement not contains from znode but contains order by expressions");
         }
 
@@ -118,8 +120,8 @@ public class SelectStatement implements Statement {
             columnNames = new String[0];
             columnNameIndexes = new HashMap<>(0);
 
-            columnGroupingTypes = new GroupingType[0];
-            columnSortingTypes = new SortingType[0];
+            columnGroupingTypes = new GroupingTypes[0];
+            columnSortingTypes = new SortingTypes[0];
         } else {
             if (select.getSelectExpression() instanceof ExpressionCollection expressionCollection) {
                 selectExpressions = expressionCollection.getList();
@@ -131,8 +133,8 @@ public class SelectStatement implements Statement {
             columnNameIndexes = new HashMap<>(selectExpressions.size());
             collectColumnNames(selectExpressions, columnNames, columnNameIndexes);
 
-            columnGroupingTypes = new GroupingType[selectExpressions.size()];
-            columnSortingTypes = new SortingType[selectExpressions.size()];
+            columnGroupingTypes = new GroupingTypes[selectExpressions.size()];
+            columnSortingTypes = new SortingTypes[selectExpressions.size()];
         }
 
         // Наименования полей группировки и их индексы
@@ -160,11 +162,11 @@ public class SelectStatement implements Statement {
 
         // Инициализация типов группировки полей
         for (int i = 0; i < selectExpressions.size(); i++) {
-            columnGroupingTypes[i] = GroupingType.from(selectExpressions.get(i));
+            columnGroupingTypes[i] = GroupingTypes.from(selectExpressions.get(i));
         }
 
         // Прямая проверка типов группировки полей
-        final boolean isGroupingExists = Arrays.stream(columnGroupingTypes).anyMatch(GroupingType::isGrouping);
+        final boolean isGroupingExists = Arrays.stream(columnGroupingTypes).anyMatch(GroupingTypes::isGrouping);
 
         if (isGroupingExists) {
             for (int i = 0; i < selectExpressions.size(); i++) {
@@ -215,9 +217,9 @@ public class SelectStatement implements Statement {
             final int index = columnSortingNameIndexes.getOrDefault(columnNames[i], -1);
 
             if (index == -1) {
-                columnSortingTypes[i] = SortingType.NONE;
+                columnSortingTypes[i] = SortingTypes.NONE;
             } else {
-                columnSortingTypes[i] = SortingType.from(sortingExpressions.get(index));
+                columnSortingTypes[i] = SortingTypes.from(sortingExpressions.get(index));
             }
         }
 

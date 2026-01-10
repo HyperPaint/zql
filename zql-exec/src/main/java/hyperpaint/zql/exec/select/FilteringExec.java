@@ -4,57 +4,77 @@ import hyperpaint.zql.lang.condition.Condition;
 import hyperpaint.zql.lang.condition.ConditionCompositeOfCondition;
 import hyperpaint.zql.lang.condition.ConditionCompositeOfExpression;
 import hyperpaint.zql.lang.condition.ConditionWrapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-class FilterExec {
+@Slf4j
+class FilteringExec {
     @FunctionalInterface
-    interface FilterEntry {
+    interface FilteringEntry {
         boolean run(String path, String data);
     }
 
     @FunctionalInterface
-    interface FilterRow {
+    interface FilteringRow {
         boolean run(Object[] row, Map<String, Integer> columnsNameIndex);
     }
 
-    final FilterEntry filterEntry;
-    final FilterRow filterRow;
+    final FilteringEntry filteringEntry;
+    final FilteringRow filteringRow;
 
-    private FilterExec(Condition condition) {
-        filterEntry = buildFilterEntry(condition);
-        filterRow = buildFilterRow(condition);
+    private FilteringExec(Condition condition) {
+        filteringEntry = buildFilterEntry(condition);
+        filteringRow = buildFilterRow(condition);
     }
 
-    public static FilterExec get(Condition condition) {
+    public static FilteringExec get(Condition condition) {
         if (condition == null) {
             return null;
         }
 
-        return new FilterExec(condition);
+        return new FilteringExec(condition);
     }
 
-    public static void filterEntries(FilterExec exec, Map <String, String> entries) {
+    public static void filterEntries(FilteringExec exec, Map <String, String> entries) {
         if (exec == null) {
             return;
         }
 
-        entries.entrySet().removeIf(entry -> !exec.filterEntry.run(entry.getKey(), entry.getValue()));
+        final long startMilliseconds = System.currentTimeMillis();
+
+        entries.entrySet().removeIf(entry -> !exec.filteringEntry.run(entry.getKey(), entry.getValue()));
+
+        final long diffMilliseconds = System.currentTimeMillis() - startMilliseconds;
+        if (log.isDebugEnabled()) {
+            log.debug("Filtering entries took {} millis", diffMilliseconds);
+        } else if (diffMilliseconds > 1000) {
+            log.warn("Filtering entries took too long: {} millis", diffMilliseconds);
+        }
     }
 
-    public static void filterRows(FilterExec exec, List<Object[]> rows, Map<String, Integer> columnsNameIndex) {
+    public static void filterRows(FilteringExec exec, List<Object[]> rows, Map<String, Integer> columnsNameIndex) {
         if (exec == null) {
             return;
         }
 
-        rows.removeIf(row -> !exec.filterRow.run(row, columnsNameIndex));
+        final long startMilliseconds = System.currentTimeMillis();
+
+        rows.removeIf(row -> !exec.filteringRow.run(row, columnsNameIndex));
+
+        final long diffMilliseconds = System.currentTimeMillis() - startMilliseconds;
+        if (log.isDebugEnabled()) {
+            log.debug("Filtering rows took {} millis", diffMilliseconds);
+        } else if (diffMilliseconds > 1000) {
+            log.warn("Filtering rows took too long: {} millis", diffMilliseconds);
+        }
     }
 
     // region FilterEntry
 
-    static FilterEntry buildFilterEntry(Condition condition) {
+    static FilteringEntry buildFilterEntry(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterEntry(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterEntry(conditionCompositeOfExpression);
@@ -63,7 +83,7 @@ class FilterExec {
         };
     }
 
-    private static FilterEntry buildFilterEntry(ConditionCompositeOfCondition condition) {
+    private static FilteringEntry buildFilterEntry(ConditionCompositeOfCondition condition) {
         final var left = buildFilterEntry(condition.getLeft());
         final var right = buildFilterEntry(condition.getRight());
 
@@ -74,7 +94,7 @@ class FilterExec {
         };
     }
 
-    private static FilterEntry buildFilterEntry(ConditionCompositeOfExpression condition) {
+    private static FilteringEntry buildFilterEntry(ConditionCompositeOfExpression condition) {
         final var left = ExpressionExec.buildExecEntry(condition.getLeft());
         final var right = ExpressionExec.buildExecEntry(condition.getRight());
 
@@ -87,7 +107,7 @@ class FilterExec {
         };
     }
 
-    private static FilterEntry buildFilterEntry(ConditionWrapper condition) {
+    private static FilteringEntry buildFilterEntry(ConditionWrapper condition) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (condition.getType()) {
             case BRACKETS -> buildFilterEntry(condition.getWrappedCondition());
@@ -99,7 +119,7 @@ class FilterExec {
 
     // region FilterRow
 
-    static FilterRow buildFilterRow(Condition condition) {
+    static FilteringRow buildFilterRow(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterRow(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterRow(conditionCompositeOfExpression);
@@ -108,7 +128,7 @@ class FilterExec {
         };
     }
 
-    private static FilterRow buildFilterRow(ConditionCompositeOfCondition condition) {
+    private static FilteringRow buildFilterRow(ConditionCompositeOfCondition condition) {
         final var left = buildFilterRow(condition.getLeft());
         final var right = buildFilterRow(condition.getRight());
 
@@ -119,7 +139,7 @@ class FilterExec {
         };
     }
 
-    private static FilterRow buildFilterRow(ConditionCompositeOfExpression condition) {
+    private static FilteringRow buildFilterRow(ConditionCompositeOfExpression condition) {
         final var left = ExpressionExec.buildExecRow(condition.getLeft());
         final var right = ExpressionExec.buildExecRow(condition.getRight());
 
@@ -132,7 +152,7 @@ class FilterExec {
         };
     }
 
-    private static FilterRow buildFilterRow(ConditionWrapper condition) {
+    private static FilteringRow buildFilterRow(ConditionWrapper condition) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (condition.getType()) {
             case BRACKETS -> buildFilterRow(condition.getWrappedCondition());

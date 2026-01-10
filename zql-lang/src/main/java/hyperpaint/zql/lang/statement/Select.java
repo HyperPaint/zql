@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 @ToString
 public class Select extends Statement {
     private final Expression selectExpression;
-    private final ZNode fromZnode;
+    private final ZNode fromZNode;
     private final Condition whereCondition;
     private final Expression groupByExpression;
     private final Condition havingCondition;
@@ -20,7 +20,7 @@ public class Select extends Statement {
 
     public Select(
             Expression selectExpression,
-            ZNode fromZnode,
+            ZNode fromZNode,
             Condition whereCondition,
             Expression groupByExpression,
             Condition havingCondition,
@@ -29,7 +29,7 @@ public class Select extends Statement {
         super(Type.SELECT);
 
         this.selectExpression = selectExpression;
-        this.fromZnode = fromZnode;
+        this.fromZNode = fromZNode;
         this.whereCondition = whereCondition;
         this.groupByExpression = groupByExpression;
         this.havingCondition = havingCondition;
@@ -40,8 +40,8 @@ public class Select extends Statement {
         return selectExpression != null;
     }
 
-    public boolean hasFromZnode() {
-        return fromZnode != null;
+    public boolean hasFromZNode() {
+        return fromZNode != null;
     }
 
     public boolean hasWhereCondition() {
@@ -70,14 +70,13 @@ public class Select extends Statement {
             } else {
                 result.append("select ").append(selectExpression.toZql(false)).append(" ");
             }
-
         }
 
-        if (hasFromZnode()) {
+        if (hasFromZNode()) {
             if (formatted) {
-                result.append("from\n").append(fromZnode.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
+                result.append("from\n").append(fromZNode.toZql(true).lines().map(s -> "\t" + s).collect(Collectors.joining("\n"))).append("\n");
             } else {
-                result.append("from ").append(fromZnode.toZql(false)).append(" ");
+                result.append("from ").append(fromZNode.toZql(false)).append(" ");
             }
         }
 

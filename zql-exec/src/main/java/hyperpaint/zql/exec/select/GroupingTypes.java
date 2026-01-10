@@ -4,7 +4,7 @@ import hyperpaint.zql.lang.expression.Expression;
 import hyperpaint.zql.lang.expression.ExpressionWrapper;
 import hyperpaint.zql.lang.expression.ExpressionWrapper2;
 
-enum GroupingType {
+public enum GroupingTypes {
     NONE,
     COUNT,
     SUM,
@@ -12,28 +12,28 @@ enum GroupingType {
     MIN,
     MAX;
 
-    public static GroupingType from(Expression expression) {
+    public static GroupingTypes from(Expression expression) {
         return switch (expression) {
             case ExpressionWrapper expressionWrapper -> from(expressionWrapper.getType());
             case ExpressionWrapper2 expressionWrapper2 -> {
                 if (expressionWrapper2.getType() == Expression.Type.ALIAS) {
                     yield from(expressionWrapper2.getWrappedExpression1().getType());
                 } else {
-                    yield GroupingType.NONE;
+                    yield GroupingTypes.NONE;
                 }
             }
-            default -> GroupingType.NONE;
+            default -> GroupingTypes.NONE;
         };
     }
 
-    private static GroupingType from(Expression.Type type) {
+    private static GroupingTypes from(Expression.Type type) {
         return switch (type) {
-            case COUNT -> GroupingType.COUNT;
-            case SUM -> GroupingType.SUM;
-            case AVG -> GroupingType.AVG;
-            case MIN -> GroupingType.MIN;
-            case MAX -> GroupingType.MAX;
-            default -> GroupingType.NONE;
+            case COUNT -> GroupingTypes.COUNT;
+            case SUM -> GroupingTypes.SUM;
+            case AVG -> GroupingTypes.AVG;
+            case MIN -> GroupingTypes.MIN;
+            case MAX -> GroupingTypes.MAX;
+            default -> GroupingTypes.NONE;
         };
     }
 

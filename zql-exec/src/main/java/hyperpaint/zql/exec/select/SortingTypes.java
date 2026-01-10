@@ -3,24 +3,24 @@ package hyperpaint.zql.exec.select;
 import hyperpaint.zql.lang.expression.Expression;
 import hyperpaint.zql.lang.expression.ExpressionWrapper;
 
-enum SortingType {
+public enum SortingTypes {
     NONE,
     ASCENDANT,
     DESCENDANT;
 
-    public static SortingType from(Expression expression) {
+    public static SortingTypes from(Expression expression) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (expression) {
             case ExpressionWrapper expressionWrapper -> from(expressionWrapper.getType());
-            default -> SortingType.NONE;
+            default -> SortingTypes.NONE;
         };
     }
 
-    private static SortingType from(Expression.Type type) {
+    private static SortingTypes from(Expression.Type type) {
         return switch (type) {
-            case ORDER_BY_ASC -> SortingType.ASCENDANT;
-            case ORDER_BY_DESC -> SortingType.DESCENDANT;
-            default -> SortingType.NONE;
+            case ORDER_BY_ASC -> SortingTypes.ASCENDANT;
+            case ORDER_BY_DESC -> SortingTypes.DESCENDANT;
+            default -> SortingTypes.NONE;
         };
     }
 
