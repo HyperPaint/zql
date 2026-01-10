@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-class ZnodeVisitor extends ZQLBaseVisitor<ZNode> {
-    static final ZnodeVisitor INSTANCE = new ZnodeVisitor();
+class ZNodeVisitor extends ZQLBaseVisitor<ZNode> {
+    static final ZNodeVisitor INSTANCE = new ZNodeVisitor();
 
     @Override
     public ZNode visitZnodesComma(ZQLParser.ZnodesCommaContext ctx) {

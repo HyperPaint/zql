@@ -11,12 +11,12 @@ import java.util.Objects;
 
 class FilterExec {
     @FunctionalInterface
-    private interface FilterEntry {
+    interface FilterEntry {
         boolean run(String path, String data);
     }
 
     @FunctionalInterface
-    private interface FilterRow {
+    interface FilterRow {
         boolean run(Object[] row, Map<String, Integer> columnsNameIndex);
     }
 
@@ -54,7 +54,7 @@ class FilterExec {
 
     // region FilterEntry
 
-    private static FilterEntry buildFilterEntry(Condition condition) {
+    static FilterEntry buildFilterEntry(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterEntry(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterEntry(conditionCompositeOfExpression);
@@ -99,7 +99,7 @@ class FilterExec {
 
     // region FilterRow
 
-    private static FilterRow buildFilterRow(Condition condition) {
+    static FilterRow buildFilterRow(Condition condition) {
         return switch (condition) {
             case ConditionCompositeOfCondition conditionCompositeOfCondition -> buildFilterRow(conditionCompositeOfCondition);
             case ConditionCompositeOfExpression conditionCompositeOfExpression -> buildFilterRow(conditionCompositeOfExpression);

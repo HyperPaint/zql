@@ -22,7 +22,7 @@ class ExpressionExec {
     final ExecEntry execEntry;
     final ExecRow execRow;
 
-    ExpressionExec(Expression expression) {
+    private ExpressionExec(Expression expression) {
         execEntry = buildExecEntry(expression);
         execRow = buildExecRow(expression);
     }

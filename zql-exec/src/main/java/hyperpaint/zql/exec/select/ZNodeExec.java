@@ -16,7 +16,7 @@ class ZNodeExec {
         Map<String, String> run(ZooKeeper zooKeeper) throws Exception;
     }
 
-    private final ExecEntry execEntry;
+    final ExecEntry execEntry;
 
     private ZNodeExec(ZNode zNode) {
         execEntry = buildExecEntry(zNode);
@@ -55,7 +55,7 @@ class ZNodeExec {
 
     // region ExecEntry
 
-    private static ExecEntry buildExecEntry(ZNode zNode) {
+    static ExecEntry buildExecEntry(ZNode zNode) {
         return switch (zNode) {
             case ZNodeList zNodeList -> buildExecEntry(zNodeList);
             case ZNodePath zNodePath -> buildExecEntry(zNodePath);
