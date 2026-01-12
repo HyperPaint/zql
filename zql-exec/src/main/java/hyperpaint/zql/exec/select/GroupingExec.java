@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 class GroupingExec {
     private static class GroupingContainer {
         private final GroupingTypes[] types;
-        private @Getter @Setter Object[] row;
+        private @Getter Object[] row;
 
         private final @Getter int[] counters;
 
@@ -23,7 +23,24 @@ class GroupingExec {
             this.types = types;
             this.row = row;
 
-            Arrays.fill(counters = new int[this.row.length], 0);
+            Arrays.fill(counters = new int[this.types.length], 1);
+
+            if (this.row != null) {
+                initRow();
+            }
+        }
+
+        public void setRow(Object[] row) {
+            this.row = row;
+            initRow();
+        }
+
+        private void initRow() {
+            for (int i = 0; i < types.length; i++) {
+                if (types[i] == GroupingTypes.COUNT) {
+                    this.row[i] = 1;
+                }
+            }
         }
 
         public void add(GroupingContainer container) {
@@ -33,12 +50,8 @@ class GroupingExec {
                         // continue;
                     }
                     case COUNT -> {
-                        if (row[i] instanceof Integer value) {
-                            row[i] = value + 1;
-                            counters[i]++;
-                            continue;
-                        } else if (row[i] instanceof Float value) {
-                            row[i] = value.intValue() + 1;
+                        if (row[i] instanceof Number number) {
+                            row[i] = number.intValue() + 1;
                             counters[i]++;
                             continue;
                         }
@@ -46,23 +59,9 @@ class GroupingExec {
                         log.warn("Grouping rule count contains non-number value '{}', skipped: '{}'", row[i], Arrays.toString(row));
                     }
                     case SUM -> {
-                        if (row[i] instanceof Integer value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = value1 + value2;
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = value1 + value2;
-                                counters[i]++;
-                                continue;
-                            }
-                        } else if (row[i] instanceof Float value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = value1 + value2;
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = value1 + value2;
+                        if (row[i] instanceof Number value1) {
+                            if (container.row[i] instanceof Number value2) {
+                                row[i] = value1.floatValue() + value2.floatValue();
                                 counters[i]++;
                                 continue;
                             }
@@ -71,20 +70,9 @@ class GroupingExec {
                         log.warn("Grouping rule sum contains non-number value '{}', skipped: '{}'", row[i], Arrays.toString(row));
                     }
                     case AVG -> {
-                        if (row[i] instanceof Integer value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = value1 + (value2 - value1) / (counters[i]++ + 1);
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = value1 + (value2 - value1) / (counters[i]++ + 1);
-                                continue;
-                            }
-                        } else if (row[i] instanceof Float value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = value1 + (value2 - value1) / (counters[i]++ + 1);
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = value1 + (value2 - value1) / (counters[i]++ + 1);
+                        if (row[i] instanceof Number value1) {
+                            if (container.row[i] instanceof Number value2) {
+                                row[i] = value1.floatValue() + (value2.floatValue() - value1.floatValue()) / (++counters[i]);
                                 continue;
                             }
                         }
@@ -92,23 +80,9 @@ class GroupingExec {
                         log.warn("Grouping rule avg contains non-number value '{}', skipped: '{}'", row[i], Arrays.toString(row));
                     }
                     case MIN -> {
-                        if (row[i] instanceof Integer value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = Math.min(value1, value2);
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = Math.min(value1, value2);
-                                counters[i]++;
-                                continue;
-                            }
-                        } else if (row[i] instanceof Float value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = Math.min(value1, value2);
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = Math.min(value1, value2);
+                        if (row[i] instanceof Number value1) {
+                            if (container.row[i] instanceof Number value2) {
+                                row[i] = Math.min(value1.floatValue(), value2.floatValue());
                                 counters[i]++;
                                 continue;
                             }
@@ -117,23 +91,9 @@ class GroupingExec {
                         log.warn("Grouping rule min contains non-number value '{}', skipped: '{}'", row[i], Arrays.toString(row));
                     }
                     case MAX -> {
-                        if (row[i] instanceof Integer value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = Math.max(value1, value2);
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = Math.max(value1, value2);
-                                counters[i]++;
-                                continue;
-                            }
-                        } else if (row[i] instanceof Float value1) {
-                            if (container.row[i] instanceof Integer value2) {
-                                row[i] = Math.max(value1, value2);
-                                counters[i]++;
-                                continue;
-                            } else if (container.row[i] instanceof Float value2) {
-                                row[i] = Math.max(value1, value2);
+                        if (row[i] instanceof Number value1) {
+                            if (container.row[i] instanceof Number value2) {
+                                row[i] = Math.max(value1.floatValue(), value2.floatValue());
                                 counters[i]++;
                                 continue;
                             }
