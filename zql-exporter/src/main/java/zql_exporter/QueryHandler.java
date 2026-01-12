@@ -6,12 +6,8 @@ import hyperpaint.zql.lang.ZQLException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import zql_exporter.config.ZqlExporterConfig;
 
 @Slf4j
 @AllArgsConstructor
@@ -46,58 +42,7 @@ class QueryHandler {
     }
 
     public String handleAsMetrics(String query, String help, String type, String name) throws Exception {
-        final var resultSet = exec(query);
-
-        final var columns = resultSet.getColumnNames();
-        final var rows = resultSet.getRows();
-
-        final var stringBuilder = new StringBuilder();
-
-        boolean braceWasOpen, labelWasFound;
-
-        for (var row : rows) {
-            for (int i = 0; i < row.length; i++) {
-                if (row[i] instanceof Number number) {
-                    if (help != null) {
-                        stringBuilder.append("# HELP zql_").append(name).append("_").append(columns[i]).append(" ").append(help).append("\n");
-                    }
-
-                    stringBuilder.append("# TYPE zql_").append(name).append("_").append(columns[i]).append(" ").append(type).append("\nzql_").append(name).append("_").append(columns[i]);
-
-                    braceWasOpen = false;
-                    labelWasFound = false;
-
-                    for (int j = 0; j < row.length; j++) {
-                        if (row[j] instanceof String string) {
-                            if (!braceWasOpen) {
-                                stringBuilder.append("{");
-                                braceWasOpen = true;
-                            }
-
-                            if (labelWasFound) {
-                                stringBuilder.append(",");
-                            }
-
-                            stringBuilder.append(columns[j]).append("=\"").append(string).append("\"");
-
-                            labelWasFound = true;
-                        }
-                    }
-
-                    if (braceWasOpen) {
-                        stringBuilder.append("}");
-                    }
-
-                    stringBuilder.append(" ").append(number.floatValue()).append("\n");
-                }
-            }
-        }
-
-        return stringBuilder.toString();
-    }
-
-    public String queries() {
-        return "";
+        return exec(query).toMetrics(help, type, name);
     }
 
     public ResultSet exec(String query) throws Exception {

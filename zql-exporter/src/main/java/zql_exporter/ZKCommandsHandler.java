@@ -74,12 +74,12 @@ public class ZKCommandsHandler {
                             case "leader", "standalone" -> true;
                             case "follower" -> false;
                             default -> {
-                                log.warn("ZooKeeper mode is unknown in response to stat command: {}", s.substring(6));
+                                log.error("ZooKeeper mode is unknown in response to stat command: {}", s.substring(6));
                                 yield false;
                             }
                         }
                 ).orElseGet(() -> {
-                    log.warn("Zookeeper mode is not found in response to stat command");
+                    log.error("Zookeeper mode is not found in response to stat command");
                     return false;
                 });
     }

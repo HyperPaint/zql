@@ -18,6 +18,7 @@ public class AppControllerAdvice {
 
     @ExceptionHandler(ZQLException.class)
     public ResponseEntity<String> handle(ZQLException e) {
+        log.error(e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }

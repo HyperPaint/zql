@@ -31,10 +31,10 @@ class MetricsHandler {
 
                         try {
                             // Отображение как число (в корректном формате)
-                            return "# TYPE zql_%s gauge\nzql_%s %s".formatted(key, key, String.valueOf(Float.parseFloat(value)));
+                            return "# HELP zql_%s %s\n# TYPE zql_%s gauge\nzql_%s %s".formatted(key, key, key, key, String.valueOf(Float.parseFloat(value)));
                         } catch (NumberFormatException ignored) {
                             // Отображение как метка
-                            return "# TYPE zql_%s gauge\nzql_%s{value=\"%s\"} 1.0".formatted(key, key, value);
+                            return "# HELP zql_%s %s\n# TYPE zql_%s gauge\nzql_%s{value=\"%s\"} 1.0".formatted(key, key, key, key, value);
                         }
                     } else {
                         return null;

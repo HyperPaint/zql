@@ -14,10 +14,23 @@ zql-exporter:
       trust-store-password: password
       hostname-verification: true
   exporter:
+    endpoints:
+      query-as-table:
+        enabled: true
+      query-as-metrics:
+        enabled: true
+      queries:
+        enabled: true
+      metrics:
+        enabled: true
+      queries-plus-metrics:
+        enabled: true
     metrics:
+      - query: "select path, data, 1 from /;"
+        name: test_metric_three
 
 logging:
   level:
-    root: "info"
-    hyperpaint.zql: "debug"
-    org.apache.zookeeper: "warn"
+    root: info
+    hyperpaint.zql: debug
+    org.apache.zookeeper: warn
