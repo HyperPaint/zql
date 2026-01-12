@@ -2,6 +2,7 @@ package zql_exporter;
 
 import hyperpaint.zql.exec.ResultSet;
 import hyperpaint.zql.exec.Statement;
+import hyperpaint.zql.lang.ZQLException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
@@ -19,11 +20,7 @@ class QueryHandler {
     private final CuratorFramework curator;
     private final ZKCommandsHandler zkCommandsHandler;
 
-    public ResponseEntity<String> queries() {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(HttpStatus.NOT_FOUND.getReasonPhrase());
-    }
-
-    public ResponseEntity<String> handleAsTable(String query) throws Exception {
+    public String handleAsTable(String query) throws Exception {
         final var resultSet = exec(query);
 
         final var columns = resultSet.getColumnNames();
@@ -45,10 +42,10 @@ class QueryHandler {
             stringBuilder.append("\n");
         }
 
-        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.TEXT_PLAIN).body(stringBuilder.toString());
+        return stringBuilder.toString();
     }
 
-    public ResponseEntity<String> handleAsMetrics(String query) throws Exception {
+    public String handleAsMetrics(String query, String help, String type, String name) throws Exception {
         final var resultSet = exec(query);
 
         final var columns = resultSet.getColumnNames();
@@ -56,27 +53,51 @@ class QueryHandler {
 
         final var stringBuilder = new StringBuilder();
 
+        boolean braceWasOpen, labelWasFound;
+
         for (var row : rows) {
             for (int i = 0; i < row.length; i++) {
                 if (row[i] instanceof Number number) {
-                    stringBuilder.append("# TYPE zql_%s gauge\nzql_%s_").append(columns[i]).append("{");
+                    if (help != null) {
+                        stringBuilder.append("# HELP zql_").append(name).append("_").append(columns[i]).append(" ").append(help).append("\n");
+                    }
+
+                    stringBuilder.append("# TYPE zql_").append(name).append("_").append(columns[i]).append(" ").append(type).append("\nzql_").append(name).append("_").append(columns[i]);
+
+                    braceWasOpen = false;
+                    labelWasFound = false;
 
                     for (int j = 0; j < row.length; j++) {
                         if (row[j] instanceof String string) {
-                            if (j != 0) {
+                            if (!braceWasOpen) {
+                                stringBuilder.append("{");
+                                braceWasOpen = true;
+                            }
+
+                            if (labelWasFound) {
                                 stringBuilder.append(",");
                             }
 
                             stringBuilder.append(columns[j]).append("=\"").append(string).append("\"");
+
+                            labelWasFound = true;
                         }
                     }
 
-                    stringBuilder.append("}").append(" ").append(number.floatValue()).append("\n");
+                    if (braceWasOpen) {
+                        stringBuilder.append("}");
+                    }
+
+                    stringBuilder.append(" ").append(number.floatValue()).append("\n");
                 }
             }
         }
 
-        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.TEXT_PLAIN).body(stringBuilder.toString());
+        return stringBuilder.toString();
+    }
+
+    public String queries() {
+        return "";
     }
 
     public ResultSet exec(String query) throws Exception {
@@ -84,7 +105,7 @@ class QueryHandler {
             final Statement statement = Statement.createStatement(query);
             return statement.execute(curator.getZookeeperClient().getZooKeeper());
         } else {
-            throw new IllegalStateException("ZooKeeper is not leader");
+            throw new ZQLException("ZooKeeper is not leader");
         }
     }
 }

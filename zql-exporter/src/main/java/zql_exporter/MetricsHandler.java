@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 class MetricsHandler {
     private final ZKCommandsHandler zkCommandsHandler;
 
-    public ResponseEntity<String> metrics() throws Exception {
-        final var result = zkCommandsHandler.exec(ZKCommandsHandler.ZKCommands.MNTR)
+    public String metrics() throws Exception {
+        return zkCommandsHandler.exec(ZKCommandsHandler.ZKCommands.MNTR)
                 .lines()
                 .map(s -> {
                     final int delimiterIndex = s.indexOf("\t");
@@ -42,7 +42,5 @@ class MetricsHandler {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining("\n"));
-
-        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.TEXT_PLAIN).body(result);
     }
 }
