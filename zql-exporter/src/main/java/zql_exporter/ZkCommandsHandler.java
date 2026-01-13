@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 @AllArgsConstructor
 @Service
-public class ZKCommandsHandler {
+public class ZkCommandsHandler {
     /// <a href="https://zookeeper.apache.org/doc/r3.4.8/zookeeperAdmin.html#sc_zkCommands">ZooKeeper Commands: The Four Letter Words</a>
     public enum ZKCommands {
         /// New in 3.3.0: Print details about serving configuration.

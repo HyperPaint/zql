@@ -7,6 +7,8 @@ import hyperpaint.zql.lang.statement.Select;
 import lombok.NonNull;
 import org.apache.zookeeper.ZooKeeper;
 
+import java.io.IOException;
+
 public interface Statement {
     static Statement createStatement(@NonNull String query) throws ZQLException {
         var statement = ZQL.parse(query);
@@ -15,5 +17,5 @@ public interface Statement {
         };
     }
 
-    ResultSet execute(ZooKeeper connection) throws ZQLException;
+    ResultSet execute(ZooKeeper connection) throws IOException, ZQLException;
 }

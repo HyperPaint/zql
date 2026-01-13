@@ -7,8 +7,10 @@ import hyperpaint.zql.lang.expression.*;
 import hyperpaint.zql.lang.statement.Select;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 
+import java.io.IOException;
 import java.util.*;
 
 @Slf4j
@@ -52,7 +54,7 @@ public class SelectStatement implements Statement {
     }
 
     @Override
-    public ResultSet execute(ZooKeeper zookeeper) throws ZQLException {
+    public ResultSet execute(ZooKeeper zookeeper) throws IOException, ZQLException {
         try {
             final var entries = ZNodeExec.convertZNodesToEntries(zNodeExecs, zookeeper);
             FilteringExec.filterEntries(whereFilteringExec, entries);
@@ -61,7 +63,9 @@ public class SelectStatement implements Statement {
             FilteringExec.filterRows(havingFilteringExec, rows, columnNameIndexes);
             SortingExec.sortRows(sortingExec, rows);
 
-            return new ResultSet(columnNames, columnNameIndexes, rows);
+            return new ResultSet(columnNames, columnNameIndexes, columnGroupingTypes, columnSortingTypes, rows);
+        } catch (InterruptedException | KeeperException e) {
+            throw new IOException(e);
         } catch (Exception e) {
             throw new ZQLException(e);
         }

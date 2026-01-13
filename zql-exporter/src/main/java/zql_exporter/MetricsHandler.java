@@ -2,9 +2,6 @@ package zql_exporter;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -14,10 +11,10 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service
 class MetricsHandler {
-    private final ZKCommandsHandler zkCommandsHandler;
+    private final ZkCommandsHandler zkCommandsHandler;
 
     public String metrics() throws Exception {
-        return zkCommandsHandler.exec(ZKCommandsHandler.ZKCommands.MNTR)
+        return zkCommandsHandler.exec(ZkCommandsHandler.ZKCommands.MNTR)
                 .lines()
                 .map(s -> {
                     final int delimiterIndex = s.indexOf("\t");

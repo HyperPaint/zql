@@ -13,13 +13,30 @@ import java.util.Map;
 public class ResultSet {
     private String[] columnNames;
     private Map<String, Integer> columnsNameIndexes;
-
-    // todo metadata
-//    private GroupingTypes[] columnGroupingTypes;
-//
-//    private SortingTypes[] columnSortingTypes;
+    private GroupingTypes[] columnGroupingTypes;
+    private SortingTypes[] columnSortingTypes;
 
     private final List<Object[]> rows;
+
+    public String toTable() {
+        final var stringBuilder = new StringBuilder();
+
+        for (var column : columnNames) {
+            stringBuilder.append(column).append("\t");
+        }
+
+        stringBuilder.append("\n");
+
+        for (var row : rows) {
+            for (var item : row) {
+                stringBuilder.append(item).append("\t");
+            }
+
+            stringBuilder.append("\n");
+        }
+
+        return stringBuilder.toString();
+    }
 
     public String toMetrics(String help, String type, String name) {
         final var stringBuilder = new StringBuilder();

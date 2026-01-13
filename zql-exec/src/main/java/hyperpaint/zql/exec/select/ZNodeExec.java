@@ -2,21 +2,22 @@ package hyperpaint.zql.exec.select;
 
 import hyperpaint.zql.lang.znode.ZNode;
 import hyperpaint.zql.lang.znode.ZNodeCollection;
-import hyperpaint.zql.lang.znode.ZNodePath;
 import hyperpaint.zql.lang.znode.ZNodeList;
+import hyperpaint.zql.lang.znode.ZNodePath;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 class ZNodeExec {
     @FunctionalInterface
     interface ExecEntry {
-        Map<String, String> run(ZooKeeper zooKeeper) throws Exception;
+        Map<String, String> run(ZooKeeper zooKeeper) throws InterruptedException, KeeperException;
     }
 
     final ExecEntry execEntry;
@@ -44,7 +45,7 @@ class ZNodeExec {
         }
     }
 
-    public static Map<String, String> convertZNodesToEntries(ZNodeExec[] execs, ZooKeeper zooKeeper) throws Exception {
+    public static Map<String, String> convertZNodesToEntries(ZNodeExec[] execs, ZooKeeper zooKeeper) throws InterruptedException, KeeperException {
         final long startMilliseconds = System.currentTimeMillis();
 
         final var entries = new HashMap<String, String>();
