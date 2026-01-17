@@ -123,6 +123,11 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
     }
 
     @Override
+    public Expression visitExpressionConcat(ZQLParser.ExpressionConcatContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.CONCATENATION, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
+    }
+
+    @Override
     public Expression visitExpressionSubstring(ZQLParser.ExpressionSubstringContext ctx) {
         return new ExpressionWrapper3(Expression.Type.SUBSTRING, visit(ctx.getChild(2)), visit(ctx.getChild(4)), visit(ctx.getChild(6)));
     }

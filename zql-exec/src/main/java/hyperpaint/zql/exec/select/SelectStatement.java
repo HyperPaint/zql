@@ -272,7 +272,7 @@ public class SelectStatement implements Statement {
                             columnNameIndexes.put(columnNames[i], i);
                             columnNameIndexes.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
                         }
-                        case JSON_PATH, ARITHMETICAL_PLUS, ARITHMETICAL_MINUS, ARITHMETICAL_MULTIPLY, ARITHMETICAL_DIV -> {
+                        case JSON_PATH, CONCATENATION, ARITHMETICAL_PLUS, ARITHMETICAL_MINUS, ARITHMETICAL_MULTIPLY, ARITHMETICAL_DIV -> {
                             columnNames[i] = expressionWrapper2.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }

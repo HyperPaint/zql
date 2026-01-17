@@ -41,6 +41,7 @@ MIN_WORD: 'min';
 MAX_WORD: 'max';
 
 JSON_PATH_WORD: 'json_path';
+CONCATENATION_WORD: 'concat';
 SUBSTRING_WORD: 'substr';
 
 AND_WORD: 'and';
@@ -100,6 +101,7 @@ selectExpressions
 selectExpression
     :   expressionAlias
     |   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionCount
@@ -158,6 +160,7 @@ whereCondition
 
 whereExpressionLeft
     :   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionNumber
@@ -167,6 +170,7 @@ whereExpressionLeft
 
 whereExpressionRight
     :   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionNumber
@@ -181,6 +185,7 @@ groupByExpressions
 
 groupByExpression
     :   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionNumber
@@ -208,6 +213,7 @@ havingCondition
 
 havingExpressionLeft
     :   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionCount
@@ -222,6 +228,7 @@ havingExpressionLeft
 
 havingExpressionRight
     :   expressionJsonPath
+    |   expressionConcat
     |   expressionSubstring
     |   expressionArithmetical
     |   expressionCount
@@ -241,6 +248,7 @@ orderByExpressions
 
 orderByExpression
     :   expressionJsonPath (ASC_WORD | DESC_WORD)?
+    |   expressionConcat (ASC_WORD | DESC_WORD)?
     |   expressionSubstring (ASC_WORD | DESC_WORD)?
     |   expressionArithmetical (ASC_WORD | DESC_WORD)?
     |   expressionCount (ASC_WORD | DESC_WORD)?
@@ -255,6 +263,7 @@ orderByExpression
 
 expressionAlias
     :   expressionJsonPath AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionConcat AS_WORD? (expressionString | expressionIdentifier)
     |   expressionSubstring AS_WORD? (expressionString | expressionIdentifier)
     |   expressionArithmetical AS_WORD? (expressionString | expressionIdentifier)
     |   expressionCount AS_WORD? (expressionString | expressionIdentifier)
@@ -269,6 +278,10 @@ expressionAlias
 
 expressionJsonPath
     :   JSON_PATH_WORD '(' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ')'
+    ;
+
+expressionConcat
+    :   CONCATENATION_WORD '(' (expressionJsonPath | expressionSubstring | expressionArithmetical | expressionNumber | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionSubstring | expressionArithmetical | expressionNumber | expressionString | expressionIdentifier) ')'
     ;
 
 expressionSubstring

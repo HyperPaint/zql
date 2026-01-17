@@ -144,6 +144,11 @@ class ExpressionExec {
                     return null;
                 }
             };
+            case CONCATENATION -> (path, data) -> {
+                final String left = String.valueOf(buildExecEntry(expression.getWrappedExpression1()).run(path, data));
+                final String right = String.valueOf(buildExecEntry(expression.getWrappedExpression2()).run(path, data));
+                return left + right;
+            };
             case ARITHMETICAL_PLUS -> (path, data) -> {
                 final float left;
                 final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
@@ -394,6 +399,11 @@ class ExpressionExec {
                     log.warn(e.getMessage(), e);
                     return null;
                 }
+            };
+            case CONCATENATION -> (row, columnsNameIndex) -> {
+                final String left = String.valueOf(buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex));
+                final String right = String.valueOf(buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex));
+                return left + right;
             };
             case ARITHMETICAL_PLUS -> (row, columnsNameIndex) -> {
                 final float left;
