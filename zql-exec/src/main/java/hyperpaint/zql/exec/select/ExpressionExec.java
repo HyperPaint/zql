@@ -38,13 +38,13 @@ class ExpressionExec {
             final var list = expressionCollection.getList();
             final var result = new ExpressionExec[list.size()];
 
-            for (int i = 0; i  < list.size(); i++) {
+            for (int i = 0; i < list.size(); i++) {
                 result[i] = new ExpressionExec(list.get(i));
             }
 
             return result;
         } else {
-            return new ExpressionExec[]{new ExpressionExec(expression)};
+            return new ExpressionExec[] { new ExpressionExec(expression) };
         }
     }
 
@@ -84,6 +84,7 @@ class ExpressionExec {
             case ExpressionString expressionString -> buildExecEntry(expressionString);
             case ExpressionWrapper expressionWrapper -> buildExecEntry(expressionWrapper);
             case ExpressionWrapper2 expressionWrapper2 -> buildExecEntry(expressionWrapper2);
+            case ExpressionWrapper3 expressionWrapper3 -> buildExecEntry(expressionWrapper3);
             default -> throw new IllegalStateException("Unexpected value: " + expression);
         };
     }
@@ -123,7 +124,7 @@ class ExpressionExec {
 
     private static ExecEntry buildExecEntry(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case COUNT, SUM, AVG, MIN, MAX -> buildExecEntry(expression.getWrappedExpression());
+            case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> buildExecEntry(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -143,6 +144,203 @@ class ExpressionExec {
                     return null;
                 }
             };
+            case ARITHMETICAL_PLUS -> (path, data) -> {
+                final float left;
+                final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of summary to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of summary to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecEntry(expression.getWrappedExpression2()).run(path, data);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of summary to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of summary to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left + right;
+            };
+            case ARITHMETICAL_MINUS -> (path, data) -> {
+                final float left;
+                final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of subtraction to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of subtraction to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecEntry(expression.getWrappedExpression2()).run(path, data);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of subtraction to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of subtraction to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left - right;
+            };
+            case ARITHMETICAL_MULTIPLY -> (path, data) -> {
+                final float left;
+                final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of multiply to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of multiply to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecEntry(expression.getWrappedExpression2()).run(path, data);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of multiply to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of multiply to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left * right;
+            };
+            case ARITHMETICAL_DIV -> (path, data) -> {
+                final float left;
+                final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of div to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of div to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecEntry(expression.getWrappedExpression2()).run(path, data);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of div to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of div to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                if (right == 0f) {
+                    return Float.NaN;
+                } else {
+                    return left / right;
+                }
+            };
+            default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
+        };
+    }
+
+    private static ExecEntry buildExecEntry(ExpressionWrapper3 expression) {
+        return switch (expression.getType()) {
+            case SUBSTRING -> (path, data) -> {
+                final String first = String.valueOf(buildExecEntry(expression.getWrappedExpression1()).run(path, data));
+
+                final int from;
+                final Object fromObject = buildExecEntry(expression.getWrappedExpression2()).run(path, data);
+
+                if (fromObject instanceof Number number) {
+                    from = number.intValue();
+                } else {
+                    try {
+                        from = Integer.parseInt(fromObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert from part of substring to integer, it is not number: {}, skipping...", fromObject);
+                        return null;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert from part of substring to integer, it is null: {}, skipping...", fromObject);
+                        return null;
+                    }
+                }
+
+                final int to;
+                final Object toObject = buildExecEntry(expression.getWrappedExpression3()).run(path, data);
+
+                if (toObject instanceof Number number) {
+                    to = number.intValue();
+                } else {
+                    try {
+                        to = Integer.parseInt(toObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert to part of substring to integer, it is not number: {}, skipping...", toObject);
+                        return null;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert to part of substring to integer, it is null: {}, skipping...", toObject);
+                        return null;
+                    }
+                }
+
+                return first.substring(Math.min(first.length(), from), Math.min(first.length(), to));
+            };
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -158,6 +356,7 @@ class ExpressionExec {
             case ExpressionString expressionString -> buildExecRow(expressionString);
             case ExpressionWrapper expressionWrapper -> buildExecRow(expressionWrapper);
             case ExpressionWrapper2 expressionWrapper2 -> buildExecRow(expressionWrapper2);
+            case ExpressionWrapper3 expressionWrapper3 -> buildExecRow(expressionWrapper3);
             default -> throw new IllegalStateException("Unexpected value: " + expression);
         };
     }
@@ -176,7 +375,7 @@ class ExpressionExec {
 
     private static ExecRow buildExecRow(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case COUNT, SUM, AVG, MIN, MAX -> buildExecRow(expression.getWrappedExpression());
+            case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> buildExecRow(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -195,6 +394,203 @@ class ExpressionExec {
                     log.warn(e.getMessage(), e);
                     return null;
                 }
+            };
+            case ARITHMETICAL_PLUS -> (row, columnsNameIndex) -> {
+                final float left;
+                final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of summary to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of summary to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of summary to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of summary to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left + right;
+            };
+            case ARITHMETICAL_MINUS -> (row, columnsNameIndex) -> {
+                final float left;
+                final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of subtraction to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of subtraction to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of subtraction to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of subtraction to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left - right;
+            };
+            case ARITHMETICAL_MULTIPLY -> (row, columnsNameIndex) -> {
+                final float left;
+                final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of multiply to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of multiply to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of multiply to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of multiply to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                return left * right;
+            };
+            case ARITHMETICAL_DIV -> (row, columnsNameIndex) -> {
+                final float left;
+                final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
+
+                if (leftObject instanceof Number number) {
+                    left = number.floatValue();
+                } else {
+                    try {
+                        left = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of div to number, it is not number: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of div to number, it is null: {}, skipping...", leftObject);
+                        return Float.NaN;
+                    }
+                }
+
+                final float right;
+                final Object rightObject = buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex);
+
+                if (rightObject instanceof Number number) {
+                    right = number.floatValue();
+                } else {
+                    try {
+                        right = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of div to number, it is not number: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of div to number, it is null: {}, skipping...", rightObject);
+                        return Float.NaN;
+                    }
+                }
+
+                if (right == 0f) {
+                    return Float.NaN;
+                } else {
+                    return left / right;
+                }
+            };
+            default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
+        };
+    }
+
+    private static ExecRow buildExecRow(ExpressionWrapper3 expression) {
+        return switch (expression.getType()) {
+            case SUBSTRING -> (row, columnsNameIndex) -> {
+                final String first = String.valueOf(buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex));
+
+                final int from;
+                final Object fromObject = buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex);
+
+                if (fromObject instanceof Number number) {
+                    from = number.intValue();
+                } else {
+                    try {
+                        from = Integer.parseInt(fromObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert from part of substring to integer, it is not number: {}, skipping...", fromObject);
+                        return null;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert from part of substring to integer, it is null: {}, skipping...", fromObject);
+                        return null;
+                    }
+                }
+
+                final int to;
+                final Object toObject = buildExecRow(expression.getWrappedExpression3()).run(row, columnsNameIndex);
+
+                if (toObject instanceof Number number) {
+                    to = number.intValue();
+                } else {
+                    try {
+                        to = Integer.parseInt(toObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert to part of substring to integer, it is not number: {}, skipping...", toObject);
+                        return null;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert to part of substring to integer, it is null: {}, skipping...", toObject);
+                        return null;
+                    }
+                }
+
+                return first.substring(Math.min(first.length() - 1, from), Math.min(first.length() - 1, to));
             };
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };

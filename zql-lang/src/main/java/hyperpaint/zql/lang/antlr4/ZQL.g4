@@ -4,6 +4,11 @@ grammar ZQL;
 package hyperpaint.zql.lang.antlr4;
 }
 
+GREATER: '>';
+GREATER_EQUALS: '>=';
+LOWER: '<';
+LOWER_EQUALS: '<=';
+
 EQUALS: '=' | '==';
 NOT_EQUALS: '<>' | '!=';
 
@@ -12,6 +17,11 @@ NOT_LIKE: NOT_LIKE_WORD | '!~';
 
 LIKE_WORD: 'like';
 NOT_LIKE_WORD: 'not'[ ]+'like';
+
+PLUS: '+';
+MINUS: '-';
+MULTIPLY: '*';
+DIV: '/';
 
 SELECT_WORD: 'select';
 FROM_WORD: 'from';
@@ -29,7 +39,9 @@ SUM_WORD: 'sum';
 AVG_WORD: 'avg';
 MIN_WORD: 'min';
 MAX_WORD: 'max';
+
 JSON_PATH_WORD: 'json_path';
+SUBSTRING_WORD: 'substr';
 
 AND_WORD: 'and';
 OR_WORD: 'or';
@@ -55,6 +67,7 @@ identifier
     |   DESC_WORD
     |   AS_WORD
     |   JSON_PATH_WORD
+    |   SUBSTRING_WORD
     |   COUNT_WORD
     |   SUM_WORD
     |   AVG_WORD
@@ -87,6 +100,8 @@ selectExpressions
 selectExpression
     :   expressionAlias
     |   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
     |   expressionCount
     |   expressionSum
     |   expressionAvg
@@ -131,7 +146,11 @@ whereConditions
     ;
 
 whereCondition
-    :   whereExpressionLeft EQUALS whereExpressionRight # WhereConditionEquals
+    :   havingExpressionLeft GREATER havingExpressionRight # WhereConditionGreater
+    |   havingExpressionLeft GREATER_EQUALS havingExpressionRight # WhereConditionGreaterEquals
+    |   havingExpressionLeft LOWER havingExpressionRight # WhereConditionLower
+    |   havingExpressionLeft LOWER_EQUALS havingExpressionRight # WhereConditionLowerEquals
+    |   whereExpressionLeft EQUALS whereExpressionRight # WhereConditionEquals
     |   whereExpressionLeft NOT_EQUALS whereExpressionRight # WhereConditionNotEquals
     |   whereExpressionLeft LIKE whereExpressionRight # WhereConditionLike
     |   whereExpressionLeft NOT_LIKE whereExpressionRight # WhereConditionNotLike
@@ -139,6 +158,8 @@ whereCondition
 
 whereExpressionLeft
     :   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -146,6 +167,8 @@ whereExpressionLeft
 
 whereExpressionRight
     :   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -158,6 +181,8 @@ groupByExpressions
 
 groupByExpression
     :   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -171,22 +196,35 @@ havingConditions
     ;
 
 havingCondition
-    :   havingExpressionLeft EQUALS havingExpressionRight # HavingConditionEquals
+    :   havingExpressionLeft GREATER havingExpressionRight # HavingConditionGreater
+    |   havingExpressionLeft GREATER_EQUALS havingExpressionRight # HavingConditionGreaterEquals
+    |   havingExpressionLeft LOWER havingExpressionRight # HavingConditionLower
+    |   havingExpressionLeft LOWER_EQUALS havingExpressionRight # HavingConditionLowerEquals
+    |   havingExpressionLeft EQUALS havingExpressionRight # HavingConditionEquals
     |   havingExpressionLeft NOT_EQUALS havingExpressionRight # HavingConditionNotEquals
     |   havingExpressionLeft LIKE havingExpressionRight # HavingConditionLike
     |   havingExpressionLeft NOT_LIKE havingExpressionRight # HavingConditionNotLike
     ;
 
 havingExpressionLeft
-    :   expressionCount
+    :   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
+    |   expressionCount
     |   expressionSum
     |   expressionAvg
     |   expressionMin
     |   expressionMax
+    |   expressionNumber
+    |   expressionString
+    |   expressionIdentifier
     ;
 
 havingExpressionRight
-    :   expressionCount
+    :   expressionJsonPath
+    |   expressionSubstring
+    |   expressionArithmetical
+    |   expressionCount
     |   expressionSum
     |   expressionAvg
     |   expressionMin
@@ -203,6 +241,8 @@ orderByExpressions
 
 orderByExpression
     :   expressionJsonPath (ASC_WORD | DESC_WORD)?
+    |   expressionSubstring (ASC_WORD | DESC_WORD)?
+    |   expressionArithmetical (ASC_WORD | DESC_WORD)?
     |   expressionCount (ASC_WORD | DESC_WORD)?
     |   expressionSum (ASC_WORD | DESC_WORD)?
     |   expressionAvg (ASC_WORD | DESC_WORD)?
@@ -215,6 +255,8 @@ orderByExpression
 
 expressionAlias
     :   expressionJsonPath AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionSubstring AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionArithmetical AS_WORD? (expressionString | expressionIdentifier)
     |   expressionCount AS_WORD? (expressionString | expressionIdentifier)
     |   expressionSum AS_WORD? (expressionString | expressionIdentifier)
     |   expressionAvg AS_WORD? (expressionString | expressionIdentifier)
@@ -226,11 +268,25 @@ expressionAlias
     ;
 
 expressionJsonPath
-    :   JSON_PATH_WORD '(' (expressionJsonPath | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionString | expressionIdentifier) ')'
+    :   JSON_PATH_WORD '(' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ')'
+    ;
+
+expressionSubstring
+    :   SUBSTRING_WORD '(' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ',' (expressionJsonPath| expressionNumber | expressionIdentifier | expressionArithmetical) ',' (expressionJsonPath| expressionNumber | expressionIdentifier | expressionArithmetical) ')'
+    ;
+
+expressionArithmetical
+    :   (expressionJsonPath | expressionNumber | expressionIdentifier) PLUS (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalPlus
+    |   (expressionJsonPath | expressionNumber | expressionIdentifier) MINUS (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalMinus
+    |   (expressionJsonPath | expressionNumber | expressionIdentifier) MULTIPLY (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalMultiply
+    |   (expressionJsonPath | expressionNumber | expressionIdentifier) DIV (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalDiv
+    |   '(' expressionArithmetical ')' # ExpressionArithmeticalBrackets
     ;
 
 expressionCount
     :   COUNT_WORD '(' expressionJsonPath ')'
+    |   COUNT_WORD '(' expressionSubstring ')'
+    |   COUNT_WORD '(' expressionArithmetical ')'
     |   COUNT_WORD '(' expressionNumber ')'
     |   COUNT_WORD '(' expressionString ')'
     |   COUNT_WORD '(' expressionIdentifier ')'
@@ -238,6 +294,8 @@ expressionCount
 
 expressionSum
     :   SUM_WORD '(' expressionJsonPath ')'
+    |   SUM_WORD '(' expressionSubstring ')'
+    |   SUM_WORD '(' expressionArithmetical ')'
     |   SUM_WORD '(' expressionNumber ')'
     |   SUM_WORD '(' expressionString ')'
     |   SUM_WORD '(' expressionIdentifier ')'
@@ -245,6 +303,8 @@ expressionSum
 
 expressionAvg
     :   AVG_WORD '(' expressionJsonPath ')'
+    |   AVG_WORD '(' expressionSubstring ')'
+    |   AVG_WORD '(' expressionArithmetical ')'
     |   AVG_WORD '(' expressionNumber ')'
     |   AVG_WORD '(' expressionString ')'
     |   AVG_WORD '(' expressionIdentifier ')'
@@ -252,6 +312,8 @@ expressionAvg
 
 expressionMin
     :   MIN_WORD '(' expressionJsonPath ')'
+    |   MIN_WORD '(' expressionSubstring ')'
+    |   MIN_WORD '(' expressionArithmetical ')'
     |   MIN_WORD '(' expressionNumber ')'
     |   MIN_WORD '(' expressionString ')'
     |   MIN_WORD '(' expressionIdentifier ')'
@@ -259,6 +321,8 @@ expressionMin
 
 expressionMax
     :   MAX_WORD '(' expressionJsonPath ')'
+    |   MAX_WORD '(' expressionSubstring ')'
+    |   MAX_WORD '(' expressionArithmetical ')'
     |   MAX_WORD '(' expressionNumber ')'
     |   MAX_WORD '(' expressionString ')'
     |   MAX_WORD '(' expressionIdentifier ')'

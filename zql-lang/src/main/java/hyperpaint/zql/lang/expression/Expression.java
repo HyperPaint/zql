@@ -21,6 +21,12 @@ public abstract class Expression extends Component {
 
         ALIAS,
         JSON_PATH,
+        SUBSTRING,
+        ARITHMETICAL_PLUS,
+        ARITHMETICAL_MINUS,
+        ARITHMETICAL_MULTIPLY,
+        ARITHMETICAL_DIV,
+        ARITHMETICAL_BRACKETS,
 
         NUMBER,
         STRING,

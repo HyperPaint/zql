@@ -123,6 +123,11 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
     }
 
     @Override
+    public Expression visitExpressionSubstring(ZQLParser.ExpressionSubstringContext ctx) {
+        return new ExpressionWrapper3(Expression.Type.SUBSTRING, visit(ctx.getChild(2)), visit(ctx.getChild(4)), visit(ctx.getChild(6)));
+    }
+
+    @Override
     public Expression visitExpressionCount(ZQLParser.ExpressionCountContext ctx) {
         return new ExpressionWrapper(Expression.Type.COUNT, visit(ctx.getChild(2)));
     }
@@ -145,6 +150,31 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
     @Override
     public Expression visitExpressionMax(ZQLParser.ExpressionMaxContext ctx) {
         return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionArithmeticalPlus(ZQLParser.ExpressionArithmeticalPlusContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_PLUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionArithmeticalMinus(ZQLParser.ExpressionArithmeticalMinusContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_MINUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionArithmeticalMultiply(ZQLParser.ExpressionArithmeticalMultiplyContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_MULTIPLY, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionArithmeticalDiv(ZQLParser.ExpressionArithmeticalDivContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_DIV, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionArithmeticalBrackets(ZQLParser.ExpressionArithmeticalBracketsContext ctx) {
+        return new ExpressionWrapper(Expression.Type.ARITHMETICAL_BRACKETS, visit(ctx.getChild(1)));
     }
 
     @Override

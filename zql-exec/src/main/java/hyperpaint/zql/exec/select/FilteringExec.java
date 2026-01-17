@@ -99,6 +99,146 @@ class FilteringExec {
         final var right = ExpressionExec.buildExecEntry(condition.getRight());
 
         return switch (condition.getType()) {
+            case GREATER -> (path, data) -> {
+                final float leftFloat;
+                final var leftObject = left.run(path, data);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of greater than to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of greater than to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(path, data);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of greater than to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of greater than to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat > rightFloat;
+            };
+            case GREATER_EQUALS -> (path, data) -> {
+                final float leftFloat;
+                final var leftObject = left.run(path, data);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of greater than or equals to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of greater than or equals to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(path, data);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of greater than or equals to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of greater than or equals to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat >= rightFloat;
+            };
+            case LOWER -> (path, data) -> {
+                final float leftFloat;
+                final var leftObject = left.run(path, data);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of less than to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of less than to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(path, data);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of less than to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of less than to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat < rightFloat;
+            };
+            case LOWER_EQUALS -> (path, data) -> {
+                final float leftFloat;
+                final var leftObject = left.run(path, data);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of less than or equals to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of less than or equals to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(path, data);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of less than or equals to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of less than or equals to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat <= rightFloat;
+            };
             case EQUALS -> (path, data) -> Objects.equals(left.run(path, data), right.run(path, data));
             case NOT_EQUALS -> (path, data) -> !Objects.equals(left.run(path, data), right.run(path, data));
             case LIKE -> (path, data) -> Objects.toString(left.run(path, data)).matches(Objects.toString(right.run(path, data)));
@@ -144,6 +284,146 @@ class FilteringExec {
         final var right = ExpressionExec.buildExecRow(condition.getRight());
 
         return switch (condition.getType()) {
+            case GREATER -> (row, columnsNameIndex) -> {
+                final float leftFloat;
+                final var leftObject = left.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of greater than to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of greater than to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of greater than to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of greater than to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat > rightFloat;
+            };
+            case GREATER_EQUALS -> (row, columnsNameIndex) -> {
+                final float leftFloat;
+                final var leftObject = left.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of greater than or equals to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of greater than or equals to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of greater than or equals to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of greater than or equals to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat >= rightFloat;
+            };
+            case LOWER -> (row, columnsNameIndex) -> {
+                final float leftFloat;
+                final var leftObject = left.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of less than to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of less than to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of less than to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of less than to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat < rightFloat;
+            };
+            case LOWER_EQUALS -> (row, columnsNameIndex) -> {
+                final float leftFloat;
+                final var leftObject = left.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    leftFloat = number.floatValue();
+                } else {
+                    try {
+                        leftFloat = Float.parseFloat(leftObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert left part of less than or equals to number, it is not number: {}, skipping...", leftObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert left part of less than or equals to number, it is null: {}, skipping...", leftObject);
+                        return false;
+                    }
+                }
+
+                final float rightFloat;
+                final var rightObject = right.run(row, columnsNameIndex);
+                if (leftObject instanceof Number number) {
+                    rightFloat = number.floatValue();
+                } else {
+                    try {
+                        rightFloat = Float.parseFloat(rightObject.toString());
+                    } catch (NumberFormatException e) {
+                        log.warn("Can't convert right part of less than or equals to number, it is not number: {}, skipping...", rightObject);
+                        return false;
+                    } catch (NullPointerException e) {
+                        log.warn("Can't convert right part of less than or equals to number, it is null: {}, skipping...", rightObject);
+                        return false;
+                    }
+                }
+
+                return leftFloat <= rightFloat;
+            };
             case EQUALS -> (row, columnsNameIndex) -> Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
             case NOT_EQUALS -> (row, columnsNameIndex) -> !Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
             case LIKE -> (row, columnsNameIndex) -> Objects.toString(left.run(row, columnsNameIndex)).matches(Objects.toString(right.run(row, columnsNameIndex)));

@@ -254,7 +254,7 @@ public class SelectStatement implements Statement {
                 }
                 case ExpressionWrapper expressionWrapper -> {
                     switch (expressionWrapper.getType()) {
-                        case COUNT, SUM, AVG, MIN, MAX -> {
+                        case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> {
                             columnNames[i] = expressionWrapper.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }
@@ -272,11 +272,19 @@ public class SelectStatement implements Statement {
                             columnNameIndexes.put(columnNames[i], i);
                             columnNameIndexes.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
                         }
-                        case JSON_PATH -> {
+                        case JSON_PATH, ARITHMETICAL_PLUS, ARITHMETICAL_MINUS, ARITHMETICAL_MULTIPLY, ARITHMETICAL_DIV -> {
                             columnNames[i] = expressionWrapper2.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }
                         default -> throw new IllegalStateException("Unexpected value: " + expressionWrapper2.getType());
+                    }
+                }
+                case ExpressionWrapper3 expressionWrapper3 -> {
+                    switch (expressionWrapper3.getType()) {
+                        case SUBSTRING -> {
+                            columnNames[i] = expressionWrapper3.toZql();
+                            columnNameIndexes.put(columnNames[i], i);
+                        }
                     }
                 }
                 default -> throw new IllegalArgumentException("Unexpected value: " + expressions.get(i));

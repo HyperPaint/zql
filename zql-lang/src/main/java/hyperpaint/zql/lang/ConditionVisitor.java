@@ -35,6 +35,34 @@ class ConditionVisitor extends ZQLBaseVisitor<Condition> {
         return new ConditionWrapper(Condition.Type.BRACKETS, condition);
     }
 
+    private Condition greater(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
+
+        return new ConditionCompositeOfExpression(Condition.Type.GREATER, left, right);
+    }
+
+    private Condition greaterEquals(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
+
+        return new ConditionCompositeOfExpression(Condition.Type.GREATER_EQUALS, left, right);
+    }
+
+    private Condition lower(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
+
+        return new ConditionCompositeOfExpression(Condition.Type.LOWER, left, right);
+    }
+
+    private Condition lowerEquals(ParseTree parseTree) {
+        final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
+        final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
+
+        return new ConditionCompositeOfExpression(Condition.Type.LOWER_EQUALS, left, right);
+    }
+
     private Condition equals(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
@@ -84,6 +112,26 @@ class ConditionVisitor extends ZQLBaseVisitor<Condition> {
     }
 
     @Override
+    public Condition visitWhereConditionGreater(ZQLParser.WhereConditionGreaterContext ctx) {
+        return greater(ctx);
+    }
+
+    @Override
+    public Condition visitWhereConditionGreaterEquals(ZQLParser.WhereConditionGreaterEqualsContext ctx) {
+        return greaterEquals(ctx);
+    }
+
+    @Override
+    public Condition visitWhereConditionLower(ZQLParser.WhereConditionLowerContext ctx) {
+        return lower(ctx);
+    }
+
+    @Override
+    public Condition visitWhereConditionLowerEquals(ZQLParser.WhereConditionLowerEqualsContext ctx) {
+        return lowerEquals(ctx);
+    }
+
+    @Override
     public Condition visitWhereConditionEquals(ZQLParser.WhereConditionEqualsContext ctx) {
         return equals(ctx);
     }
@@ -121,6 +169,26 @@ class ConditionVisitor extends ZQLBaseVisitor<Condition> {
     @Override
     public Condition visitHavingConditionsBase(ZQLParser.HavingConditionsBaseContext ctx) {
         return visit(ctx.getChild(0));
+    }
+
+    @Override
+    public Condition visitHavingConditionGreater(ZQLParser.HavingConditionGreaterContext ctx) {
+        return greater(ctx);
+    }
+
+    @Override
+    public Condition visitHavingConditionGreaterEquals(ZQLParser.HavingConditionGreaterEqualsContext ctx) {
+        return greaterEquals(ctx);
+    }
+
+    @Override
+    public Condition visitHavingConditionLower(ZQLParser.HavingConditionLowerContext ctx) {
+        return lower(ctx);
+    }
+
+    @Override
+    public Condition visitHavingConditionLowerEquals(ZQLParser.HavingConditionLowerEqualsContext ctx) {
+        return lowerEquals(ctx);
     }
 
     @Override

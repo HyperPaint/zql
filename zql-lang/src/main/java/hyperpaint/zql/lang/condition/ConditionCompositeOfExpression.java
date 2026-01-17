@@ -21,6 +21,10 @@ public class ConditionCompositeOfExpression extends Condition {
     @Override
     public String toZql(boolean formatted) {
         return switch (type) {
+            case GREATER -> left.toZql(formatted) + " > " + right.toZql(formatted);
+            case GREATER_EQUALS -> left.toZql(formatted) + " >= " + right.toZql(formatted);
+            case LOWER -> left.toZql(formatted) + " < " + right.toZql(formatted);
+            case LOWER_EQUALS -> left.toZql(formatted) + " <= " + right.toZql(formatted);
             case EQUALS -> left.toZql(formatted) + " == " + right.toZql(formatted);
             case NOT_EQUALS -> left.toZql(formatted) + " != " + right.toZql(formatted);
             case LIKE -> left.toZql(formatted) + " =~ " + right.toZql(formatted);

@@ -18,6 +18,7 @@ public class ExpressionWrapper extends Expression {
     @Override
     public String toZql(boolean formatted) {
         return switch (type) {
+            case ARITHMETICAL_BRACKETS -> "(" + wrappedExpression.toZql(formatted) + ")";
             case COUNT -> "count(" + wrappedExpression.toZql(formatted) + ")";
             case SUM -> "sum(" + wrappedExpression.toZql(formatted) + ")";
             case AVG -> "avg(" + wrappedExpression.toZql(formatted) + ")";

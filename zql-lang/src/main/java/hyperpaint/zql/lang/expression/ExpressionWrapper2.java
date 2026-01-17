@@ -22,6 +22,10 @@ public class ExpressionWrapper2 extends Expression {
         return switch (type) {
             case ALIAS -> wrappedExpression1.toZql(formatted) + " as " + wrappedExpression2.toZql(formatted);
             case JSON_PATH -> "json_path(" + wrappedExpression1.toZql(formatted) + ", " + wrappedExpression2.toZql(formatted) + ")";
+            case ARITHMETICAL_PLUS -> wrappedExpression1.toZql(formatted) + '+' + wrappedExpression2.toZql(formatted);
+            case ARITHMETICAL_MINUS -> wrappedExpression1.toZql(formatted) + '-' + wrappedExpression2.toZql(formatted);
+            case ARITHMETICAL_MULTIPLY -> wrappedExpression1.toZql(formatted) + '*' + wrappedExpression2.toZql(formatted);
+            case ARITHMETICAL_DIV -> wrappedExpression1.toZql(formatted) + '/' + wrappedExpression2.toZql(formatted);
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

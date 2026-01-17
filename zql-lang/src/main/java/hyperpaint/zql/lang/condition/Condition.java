@@ -16,6 +16,10 @@ public abstract class Condition extends Component {
 
         BRACKETS,
 
+        GREATER,
+        GREATER_EQUALS,
+        LOWER,
+        LOWER_EQUALS,
         EQUALS,
         NOT_EQUALS,
         LIKE,
