@@ -88,8 +88,8 @@ class FilteringExec {
         final var right = buildFilterEntry(condition.getRight());
 
         return switch (condition.getType()) {
-            case AND -> (path, data) -> left.run(path, data) && right.run(path, data);
-            case OR -> (path, data) -> left.run(path, data) || right.run(path, data);
+            case C_C_AND -> (path, data) -> left.run(path, data) && right.run(path, data);
+            case C_C_OR -> (path, data) -> left.run(path, data) || right.run(path, data);
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }
@@ -99,7 +99,7 @@ class FilteringExec {
         final var right = ExpressionExec.buildExecEntry(condition.getRight());
 
         return switch (condition.getType()) {
-            case GREATER -> (path, data) -> {
+            case E_E_GREATER -> (path, data) -> {
                 final float leftFloat;
                 final var leftObject = left.run(path, data);
                 if (leftObject instanceof Number number) {
@@ -134,7 +134,7 @@ class FilteringExec {
 
                 return leftFloat > rightFloat;
             };
-            case GREATER_EQUALS -> (path, data) -> {
+            case E_E_GREATER_EQUALS -> (path, data) -> {
                 final float leftFloat;
                 final var leftObject = left.run(path, data);
                 if (leftObject instanceof Number number) {
@@ -169,7 +169,7 @@ class FilteringExec {
 
                 return leftFloat >= rightFloat;
             };
-            case LOWER -> (path, data) -> {
+            case E_E_LOWER -> (path, data) -> {
                 final float leftFloat;
                 final var leftObject = left.run(path, data);
                 if (leftObject instanceof Number number) {
@@ -204,7 +204,7 @@ class FilteringExec {
 
                 return leftFloat < rightFloat;
             };
-            case LOWER_EQUALS -> (path, data) -> {
+            case E_E_LOWER_EQUALS -> (path, data) -> {
                 final float leftFloat;
                 final var leftObject = left.run(path, data);
                 if (leftObject instanceof Number number) {
@@ -239,10 +239,10 @@ class FilteringExec {
 
                 return leftFloat <= rightFloat;
             };
-            case EQUALS -> (path, data) -> Objects.equals(left.run(path, data), right.run(path, data));
-            case NOT_EQUALS -> (path, data) -> !Objects.equals(left.run(path, data), right.run(path, data));
-            case LIKE -> (path, data) -> Objects.toString(left.run(path, data)).matches(Objects.toString(right.run(path, data)));
-            case NOT_LIKE -> (path, data) -> !Objects.toString(left.run(path, data)).matches(Objects.toString(right.run(path, data)));
+            case E_E_EQUALS -> (path, data) -> Objects.equals(left.run(path, data), right.run(path, data));
+            case E_E_NOT_EQUALS -> (path, data) -> !Objects.equals(left.run(path, data), right.run(path, data));
+            case E_E_LIKE -> (path, data) -> Objects.toString(left.run(path, data)).matches(Objects.toString(right.run(path, data)));
+            case E_E_NOT_LIKE -> (path, data) -> !Objects.toString(left.run(path, data)).matches(Objects.toString(right.run(path, data)));
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }
@@ -250,7 +250,7 @@ class FilteringExec {
     private static FilteringEntry buildFilterEntry(ConditionWrapper condition) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (condition.getType()) {
-            case BRACKETS -> buildFilterEntry(condition.getWrappedCondition());
+            case C_C_WRAP -> buildFilterEntry(condition.getWrappedCondition());
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }
@@ -273,8 +273,8 @@ class FilteringExec {
         final var right = buildFilterRow(condition.getRight());
 
         return switch (condition.getType()) {
-            case AND -> (row, columnsNameIndex) -> left.run(row, columnsNameIndex) && right.run(row, columnsNameIndex);
-            case OR -> (row, columnsNameIndex) -> left.run(row, columnsNameIndex) || right.run(row, columnsNameIndex);
+            case C_C_AND -> (row, columnsNameIndex) -> left.run(row, columnsNameIndex) && right.run(row, columnsNameIndex);
+            case C_C_OR -> (row, columnsNameIndex) -> left.run(row, columnsNameIndex) || right.run(row, columnsNameIndex);
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }
@@ -284,7 +284,7 @@ class FilteringExec {
         final var right = ExpressionExec.buildExecRow(condition.getRight());
 
         return switch (condition.getType()) {
-            case GREATER -> (row, columnsNameIndex) -> {
+            case E_E_GREATER -> (row, columnsNameIndex) -> {
                 final float leftFloat;
                 final var leftObject = left.run(row, columnsNameIndex);
                 if (leftObject instanceof Number number) {
@@ -319,7 +319,7 @@ class FilteringExec {
 
                 return leftFloat > rightFloat;
             };
-            case GREATER_EQUALS -> (row, columnsNameIndex) -> {
+            case E_E_GREATER_EQUALS -> (row, columnsNameIndex) -> {
                 final float leftFloat;
                 final var leftObject = left.run(row, columnsNameIndex);
                 if (leftObject instanceof Number number) {
@@ -354,7 +354,7 @@ class FilteringExec {
 
                 return leftFloat >= rightFloat;
             };
-            case LOWER -> (row, columnsNameIndex) -> {
+            case E_E_LOWER -> (row, columnsNameIndex) -> {
                 final float leftFloat;
                 final var leftObject = left.run(row, columnsNameIndex);
                 if (leftObject instanceof Number number) {
@@ -389,7 +389,7 @@ class FilteringExec {
 
                 return leftFloat < rightFloat;
             };
-            case LOWER_EQUALS -> (row, columnsNameIndex) -> {
+            case E_E_LOWER_EQUALS -> (row, columnsNameIndex) -> {
                 final float leftFloat;
                 final var leftObject = left.run(row, columnsNameIndex);
                 if (leftObject instanceof Number number) {
@@ -424,10 +424,10 @@ class FilteringExec {
 
                 return leftFloat <= rightFloat;
             };
-            case EQUALS -> (row, columnsNameIndex) -> Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
-            case NOT_EQUALS -> (row, columnsNameIndex) -> !Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
-            case LIKE -> (row, columnsNameIndex) -> Objects.toString(left.run(row, columnsNameIndex)).matches(Objects.toString(right.run(row, columnsNameIndex)));
-            case NOT_LIKE -> (row, columnsNameIndex) -> !Objects.toString(left.run(row, columnsNameIndex)).matches(Objects.toString(right.run(row, columnsNameIndex)));
+            case E_E_EQUALS -> (row, columnsNameIndex) -> Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
+            case E_E_NOT_EQUALS -> (row, columnsNameIndex) -> !Objects.equals(left.run(row, columnsNameIndex), right.run(row, columnsNameIndex));
+            case E_E_LIKE -> (row, columnsNameIndex) -> Objects.toString(left.run(row, columnsNameIndex)).matches(Objects.toString(right.run(row, columnsNameIndex)));
+            case E_E_NOT_LIKE -> (row, columnsNameIndex) -> !Objects.toString(left.run(row, columnsNameIndex)).matches(Objects.toString(right.run(row, columnsNameIndex)));
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }
@@ -435,7 +435,7 @@ class FilteringExec {
     private static FilteringRow buildFilterRow(ConditionWrapper condition) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (condition.getType()) {
-            case BRACKETS -> buildFilterRow(condition.getWrappedCondition());
+            case C_C_WRAP -> buildFilterRow(condition.getWrappedCondition());
             default -> throw new IllegalStateException("Unexpected value: " + condition.getType());
         };
     }

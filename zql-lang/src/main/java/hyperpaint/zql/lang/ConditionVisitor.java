@@ -19,76 +19,76 @@ class ConditionVisitor extends ZQLBaseVisitor<Condition> {
         final Condition left = visit(parseTree.getChild(0));
         final Condition right = visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfCondition(Condition.Type.AND, left, right);
+        return new ConditionCompositeOfCondition(Condition.Type.C_C_AND, left, right);
     }
 
     private Condition or(ParseTree parseTree) {
         final Condition left = visit(parseTree.getChild(0));
         final Condition right = visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfCondition(Condition.Type.OR, left, right);
+        return new ConditionCompositeOfCondition(Condition.Type.C_C_OR, left, right);
     }
 
     private Condition brackets(ParseTree parseTree) {
         final Condition condition = visit(parseTree.getChild(1));
 
-        return new ConditionWrapper(Condition.Type.BRACKETS, condition);
+        return new ConditionWrapper(Condition.Type.C_C_WRAP, condition);
     }
 
     private Condition greater(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.GREATER, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_GREATER, left, right);
     }
 
     private Condition greaterEquals(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.GREATER_EQUALS, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_GREATER_EQUALS, left, right);
     }
 
     private Condition lower(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.LOWER, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_LOWER, left, right);
     }
 
     private Condition lowerEquals(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.LOWER_EQUALS, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_LOWER_EQUALS, left, right);
     }
 
     private Condition equals(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.EQUALS, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_EQUALS, left, right);
     }
 
     private Condition notEquals(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_EQUALS, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_NOT_EQUALS, left, right);
     }
 
     private Condition like(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.LIKE, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_LIKE, left, right);
     }
 
     private Condition notLike(ParseTree parseTree) {
         final Expression left = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(0));
         final Expression right = ExpressionVisitor.INSTANCE.visit(parseTree.getChild(2));
 
-        return new ConditionCompositeOfExpression(Condition.Type.NOT_LIKE, left, right);
+        return new ConditionCompositeOfExpression(Condition.Type.E_E_NOT_LIKE, left, right);
     }
 
     @Override

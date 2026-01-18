@@ -21,14 +21,14 @@ public class ConditionCompositeOfCondition extends Condition {
     public String toZql(boolean formatted) {
         if (formatted) {
             return switch (type) {
-                case AND -> left.toZql(true) + "\nand " + right.toZql(true);
-                case OR -> left.toZql(true) + "\nor " + right.toZql(true);
+                case C_C_AND -> left.toZql(true) + "\nand " + right.toZql(true);
+                case C_C_OR -> left.toZql(true) + "\nor " + right.toZql(true);
                 default -> throw new IllegalArgumentException("Unexpected value: " + type);
             };
         } else {
             return switch (type) {
-                case AND -> left.toZql(false) + " and " + right.toZql(false);
-                case OR -> left.toZql(false) + " or " + right.toZql(false);
+                case C_C_AND -> left.toZql(false) + " and " + right.toZql(false);
+                case C_C_OR -> left.toZql(false) + " or " + right.toZql(false);
                 default -> throw new IllegalArgumentException("Unexpected value: " + type);
             };
         }

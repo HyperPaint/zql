@@ -15,13 +15,10 @@ NOT_EQUALS: '<>' | '!=';
 LIKE: LIKE_WORD | '=~';
 NOT_LIKE: NOT_LIKE_WORD | '!~';
 
-LIKE_WORD: 'like';
-NOT_LIKE_WORD: 'not'[ ]+'like';
-
 PLUS: '+';
 MINUS: '-';
 MULTIPLY: '*';
-DIV: '/';
+DIVIDE: '/';
 
 SELECT_WORD: 'select';
 FROM_WORD: 'from';
@@ -32,22 +29,25 @@ ORDER_BY_WORD: 'order'[ ]+'by';
 ASC_WORD: 'asc';
 DESC_WORD: 'desc';
 
+LIST_WORD: 'list' | 'ls';
+
+LIKE_WORD: 'like';
+NOT_LIKE_WORD: 'not'[ ]+'like';
+
+AND_WORD: 'and';
+OR_WORD: 'or';
+
 AS_WORD: 'as';
+
+SUBSTRING_WORD: 'substr';
+JSON_PATH_WORD: 'json_path';
+CONCATENATION_WORD: 'concat';
 
 COUNT_WORD: 'count';
 SUM_WORD: 'sum';
 AVG_WORD: 'avg';
 MIN_WORD: 'min';
 MAX_WORD: 'max';
-
-JSON_PATH_WORD: 'json_path';
-CONCATENATION_WORD: 'concat';
-SUBSTRING_WORD: 'substr';
-
-AND_WORD: 'and';
-OR_WORD: 'or';
-
-LIST_WORD: 'list' | 'ls';
 
 STRING: [']~[']*['] | ["]~["]*["];
 NUMBER: ('-')? ([0] | [1-9][0-9]*) ('.'[0-9]+)?;
@@ -66,18 +66,19 @@ identifier
     |   HAVING_WORD
     |   ASC_WORD
     |   DESC_WORD
+    |   LIST_WORD
+    |   LIKE_WORD
+    |   AND_WORD
+    |   OR_WORD
     |   AS_WORD
-    |   JSON_PATH_WORD
     |   SUBSTRING_WORD
+    |   JSON_PATH_WORD
+    |   CONCATENATION_WORD
     |   COUNT_WORD
     |   SUM_WORD
     |   AVG_WORD
     |   MIN_WORD
     |   MAX_WORD
-    |   AND_WORD
-    |   OR_WORD
-    |   LIST_WORD
-    |   LIKE_WORD
     ;
 
 statement
@@ -100,23 +101,27 @@ selectExpressions
 
 selectExpression
     :   expressionAlias
-    |   expressionJsonPath
-    |   expressionConcat
+    // 3 ARGS
     |   expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // 1 ARGS GROUP
     |   expressionCount
     |   expressionSum
     |   expressionAvg
     |   expressionMin
     |   expressionMax
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
     ;
 
 fromZnodes
-    :   fromZnodes ',' fromZnodes # ZnodesComma
-    |   znode # ZnodesBase
+    :   fromZnodes ',' fromZnodes # ZNodesComma
+    |   znode # ZNodesBase
     ;
 
 znode
@@ -159,20 +164,26 @@ whereCondition
     ;
 
 whereExpressionLeft
-    :   expressionJsonPath
-    |   expressionConcat
-    |   expressionSubstring
+    // 3 ARGS
+    :  expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
     ;
 
 whereExpressionRight
-    :   expressionJsonPath
-    |   expressionConcat
-    |   expressionSubstring
+    // 3 ARGS
+    :  expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -184,10 +195,13 @@ groupByExpressions
     ;
 
 groupByExpression
-    :   expressionJsonPath
-    |   expressionConcat
-    |   expressionSubstring
+    // 3 ARGS
+    :  expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -212,30 +226,38 @@ havingCondition
     ;
 
 havingExpressionLeft
-    :   expressionJsonPath
-    |   expressionConcat
-    |   expressionSubstring
+    // 3 ARGS
+    :   expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // 1 ARGS GROUP
     |   expressionCount
     |   expressionSum
     |   expressionAvg
     |   expressionMin
     |   expressionMax
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
     ;
 
 havingExpressionRight
-    :   expressionJsonPath
-    |   expressionConcat
-    |   expressionSubstring
+    // 3 ARGS
+    :   expressionSubstring
+    // 2 ARGS
+    |   expressionJsonPath
+    |   expressionConcatenation
     |   expressionArithmetical
+    // 1 ARGS GROUP
     |   expressionCount
     |   expressionSum
     |   expressionAvg
     |   expressionMin
     |   expressionMax
+    // PRIMITIVE
     |   expressionNumber
     |   expressionString
     |   expressionIdentifier
@@ -247,98 +269,297 @@ orderByExpressions
     ;
 
 orderByExpression
-    :   expressionJsonPath (ASC_WORD | DESC_WORD)?
-    |   expressionConcat (ASC_WORD | DESC_WORD)?
-    |   expressionSubstring (ASC_WORD | DESC_WORD)?
+    // 3 ARGS
+    :   expressionSubstring (ASC_WORD | DESC_WORD)?
+    // 2 ARGS
+    |   expressionJsonPath (ASC_WORD | DESC_WORD)?
+    |   expressionConcatenation (ASC_WORD | DESC_WORD)?
     |   expressionArithmetical (ASC_WORD | DESC_WORD)?
+    // 1 ARGS GROUP
     |   expressionCount (ASC_WORD | DESC_WORD)?
     |   expressionSum (ASC_WORD | DESC_WORD)?
     |   expressionAvg (ASC_WORD | DESC_WORD)?
     |   expressionMin (ASC_WORD | DESC_WORD)?
     |   expressionMax (ASC_WORD | DESC_WORD)?
+    // PRIMITIVE
     |   expressionNumber (ASC_WORD | DESC_WORD)?
     |   expressionString (ASC_WORD | DESC_WORD)?
     |   expressionIdentifier (ASC_WORD | DESC_WORD)?
     ;
 
 expressionAlias
-    :   expressionJsonPath AS_WORD? (expressionString | expressionIdentifier)
-    |   expressionConcat AS_WORD? (expressionString | expressionIdentifier)
-    |   expressionSubstring AS_WORD? (expressionString | expressionIdentifier)
+    // 3 ARGS
+    :   expressionSubstring AS_WORD? (expressionString | expressionIdentifier)
+    // 2 ARGS
+    |   expressionJsonPath AS_WORD? (expressionString | expressionIdentifier)
+    |   expressionConcatenation AS_WORD? (expressionString | expressionIdentifier)
     |   expressionArithmetical AS_WORD? (expressionString | expressionIdentifier)
+    // 1 ARGS GROUP
     |   expressionCount AS_WORD? (expressionString | expressionIdentifier)
     |   expressionSum AS_WORD? (expressionString | expressionIdentifier)
     |   expressionAvg AS_WORD? (expressionString | expressionIdentifier)
     |   expressionMin AS_WORD? (expressionString | expressionIdentifier)
     |   expressionMax AS_WORD? (expressionString | expressionIdentifier)
+    // PRIMITIVE
     |   expressionNumber AS_WORD? (expressionString | expressionIdentifier)
     |   expressionString AS_WORD? (expressionString | expressionIdentifier)
     |   expressionIdentifier AS_WORD? (expressionString | expressionIdentifier)
     ;
 
 expressionJsonPath
-    :   JSON_PATH_WORD '(' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ')'
+    :   JSON_PATH_WORD
+        '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionString
+            | expressionIdentifier
+        ) ',' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
-expressionConcat
-    :   CONCATENATION_WORD '(' (expressionJsonPath | expressionSubstring | expressionArithmetical | expressionNumber | expressionString | expressionIdentifier) ',' (expressionJsonPath | expressionSubstring | expressionArithmetical | expressionNumber | expressionString | expressionIdentifier) ')'
+expressionConcatenation
+    :   CONCATENATION_WORD
+        '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ',' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionSubstring
-    :   SUBSTRING_WORD '(' (expressionJsonPath | expressionSubstring | expressionString | expressionIdentifier) ',' (expressionJsonPath| expressionNumber | expressionIdentifier | expressionArithmetical) ',' (expressionJsonPath| expressionNumber | expressionIdentifier | expressionArithmetical) ')'
+    :   SUBSTRING_WORD
+        '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ',' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ',' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionArithmetical
-    :   (expressionJsonPath | expressionNumber | expressionIdentifier) PLUS (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalPlus
-    |   (expressionJsonPath | expressionNumber | expressionIdentifier) MINUS (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalMinus
-    |   (expressionJsonPath | expressionNumber | expressionIdentifier) MULTIPLY (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalMultiply
-    |   (expressionJsonPath | expressionNumber | expressionIdentifier) DIV (expressionJsonPath | expressionNumber | expressionIdentifier | expressionArithmetical) # ExpressionArithmeticalDiv
+    :   (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) PLUS (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) # ExpressionArithmeticalPlus
+    |   (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) MINUS (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) # ExpressionArithmeticalMinus
+    |   (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) MULTIPLY (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) # ExpressionArithmeticalMultiply
+    |   (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) DIVIDE (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+    ) # ExpressionArithmeticalDivide
     |   '(' expressionArithmetical ')' # ExpressionArithmeticalBrackets
     ;
 
 expressionCount
-    :   COUNT_WORD '(' expressionJsonPath ')'
-    |   COUNT_WORD '(' expressionSubstring ')'
-    |   COUNT_WORD '(' expressionArithmetical ')'
-    |   COUNT_WORD '(' expressionNumber ')'
-    |   COUNT_WORD '(' expressionString ')'
-    |   COUNT_WORD '(' expressionIdentifier ')'
+    :   COUNT_WORD
+        '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionSum
-    :   SUM_WORD '(' expressionJsonPath ')'
-    |   SUM_WORD '(' expressionSubstring ')'
-    |   SUM_WORD '(' expressionArithmetical ')'
-    |   SUM_WORD '(' expressionNumber ')'
-    |   SUM_WORD '(' expressionString ')'
-    |   SUM_WORD '(' expressionIdentifier ')'
+    :   SUM_WORD '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionAvg
-    :   AVG_WORD '(' expressionJsonPath ')'
-    |   AVG_WORD '(' expressionSubstring ')'
-    |   AVG_WORD '(' expressionArithmetical ')'
-    |   AVG_WORD '(' expressionNumber ')'
-    |   AVG_WORD '(' expressionString ')'
-    |   AVG_WORD '(' expressionIdentifier ')'
+    :   AVG_WORD '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionMin
-    :   MIN_WORD '(' expressionJsonPath ')'
-    |   MIN_WORD '(' expressionSubstring ')'
-    |   MIN_WORD '(' expressionArithmetical ')'
-    |   MIN_WORD '(' expressionNumber ')'
-    |   MIN_WORD '(' expressionString ')'
-    |   MIN_WORD '(' expressionIdentifier ')'
+    :   MIN_WORD '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionMax
-    :   MAX_WORD '(' expressionJsonPath ')'
-    |   MAX_WORD '(' expressionSubstring ')'
-    |   MAX_WORD '(' expressionArithmetical ')'
-    |   MAX_WORD '(' expressionNumber ')'
-    |   MAX_WORD '(' expressionString ')'
-    |   MAX_WORD '(' expressionIdentifier ')'
+    :   MAX_WORD '(' (
+            // 3 ARGS
+            expressionSubstring
+            // 2 ARGS
+            | expressionJsonPath
+            | expressionConcatenation
+            | expressionArithmetical
+            // PRIMITIVE
+            | expressionNumber
+            | expressionString
+            | expressionIdentifier
+        ) ')'
     ;
 
 expressionNumber

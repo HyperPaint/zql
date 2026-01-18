@@ -10,13 +10,9 @@ public class ExpressionNumber extends Expression {
     private final Number number;
 
     public ExpressionNumber(@NonNull String number) {
-        super(Type.NUMBER);
+        super(Type.P_NUMBER);
 
-        if (number.contains(".") || number.contains(",")) {
-            this.number = Float.valueOf(number);
-        } else {
-            this.number = Integer.valueOf(number);
-        }
+        this.number = Float.valueOf(number);
     }
 
     @Override

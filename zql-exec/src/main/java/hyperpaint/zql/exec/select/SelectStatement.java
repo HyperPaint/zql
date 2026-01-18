@@ -254,7 +254,7 @@ public class SelectStatement implements Statement {
                 }
                 case ExpressionWrapper expressionWrapper -> {
                     switch (expressionWrapper.getType()) {
-                        case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> {
+                        case G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX, E1A_ARITHMETICAL_WRAP -> {
                             columnNames[i] = expressionWrapper.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }
@@ -272,7 +272,8 @@ public class SelectStatement implements Statement {
                             columnNameIndexes.put(columnNames[i], i);
                             columnNameIndexes.put(expressionWrapper2.getWrappedExpression1().toZql(), i);
                         }
-                        case JSON_PATH, CONCATENATION, ARITHMETICAL_PLUS, ARITHMETICAL_MINUS, ARITHMETICAL_MULTIPLY, ARITHMETICAL_DIV -> {
+                        case E2A_JSON_PATH, E2A_CONCATENATION, E2A_ARITHMETICAL_PLUS, E2A_ARITHMETICAL_MINUS,
+                             E2A_ARITHMETICAL_MULTIPLY, E2A_ARITHMETICAL_DIVIDE -> {
                             columnNames[i] = expressionWrapper2.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }
@@ -281,7 +282,7 @@ public class SelectStatement implements Statement {
                 }
                 case ExpressionWrapper3 expressionWrapper3 -> {
                     switch (expressionWrapper3.getType()) {
-                        case SUBSTRING -> {
+                        case E3A_SUBSTRING -> {
                             columnNames[i] = expressionWrapper3.toZql();
                             columnNameIndexes.put(columnNames[i], i);
                         }

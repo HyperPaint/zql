@@ -10,7 +10,7 @@ public class ExpressionIdentifier extends Expression {
     private final String identifier;
 
     public ExpressionIdentifier(@NonNull String identifier) {
-        super(Type.IDENTIFIER);
+        super(Type.P_IDENTIFIER);
 
         this.identifier = identifier;
     }

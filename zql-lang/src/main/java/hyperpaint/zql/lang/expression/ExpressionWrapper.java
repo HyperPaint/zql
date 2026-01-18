@@ -18,12 +18,12 @@ public class ExpressionWrapper extends Expression {
     @Override
     public String toZql(boolean formatted) {
         return switch (type) {
-            case ARITHMETICAL_BRACKETS -> "(" + wrappedExpression.toZql(formatted) + ")";
-            case COUNT -> "count(" + wrappedExpression.toZql(formatted) + ")";
-            case SUM -> "sum(" + wrappedExpression.toZql(formatted) + ")";
-            case AVG -> "avg(" + wrappedExpression.toZql(formatted) + ")";
-            case MIN -> "min(" + wrappedExpression.toZql(formatted) + ")";
-            case MAX -> "max(" + wrappedExpression.toZql(formatted) + ")";
+            case E1A_ARITHMETICAL_WRAP -> "(" + wrappedExpression.toZql(formatted) + ")";
+            case G1A_COUNT -> "count(" + wrappedExpression.toZql(formatted) + ")";
+            case G1A_SUM -> "sum(" + wrappedExpression.toZql(formatted) + ")";
+            case G1A_AVG -> "avg(" + wrappedExpression.toZql(formatted) + ")";
+            case G1A_MIN -> "min(" + wrappedExpression.toZql(formatted) + ")";
+            case G1A_MAX -> "max(" + wrappedExpression.toZql(formatted) + ")";
             case ORDER_BY_ASC -> wrappedExpression.toZql(formatted) + " asc";
             case ORDER_BY_DESC -> wrappedExpression.toZql(formatted) + " desc";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);

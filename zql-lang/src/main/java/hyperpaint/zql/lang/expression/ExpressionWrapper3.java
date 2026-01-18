@@ -23,7 +23,7 @@ public class ExpressionWrapper3 extends Expression {
     public String toZql(boolean formatted) {
         //noinspection SwitchStatementWithTooFewBranches
         return switch (type) {
-            case SUBSTRING -> "substr(" + wrappedExpression1.toZql(formatted) + ", " + wrappedExpression2.toZql(formatted) + ", " + wrappedExpression3.toZql(formatted) + ")";
+            case E3A_SUBSTRING -> "substr(" + wrappedExpression1.toZql(formatted) + ", " + wrappedExpression2.toZql(formatted) + ", " + wrappedExpression3.toZql(formatted) + ")";
             default -> throw new IllegalArgumentException("Unexpected value: " + type);
         };
     }

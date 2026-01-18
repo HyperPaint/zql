@@ -10,7 +10,7 @@ public class ExpressionString extends Expression {
     private final String string;
 
     public ExpressionString(@NonNull String string) {
-        super(Type.STRING);
+        super(Type.P_STRING);
 
         this.string = string;
     }

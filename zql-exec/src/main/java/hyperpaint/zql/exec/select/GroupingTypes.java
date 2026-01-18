@@ -28,11 +28,11 @@ public enum GroupingTypes {
 
     private static GroupingTypes from(Expression.Type type) {
         return switch (type) {
-            case COUNT -> GroupingTypes.COUNT;
-            case SUM -> GroupingTypes.SUM;
-            case AVG -> GroupingTypes.AVG;
-            case MIN -> GroupingTypes.MIN;
-            case MAX -> GroupingTypes.MAX;
+            case G1A_COUNT -> GroupingTypes.COUNT;
+            case G1A_SUM -> GroupingTypes.SUM;
+            case G1A_AVG -> GroupingTypes.AVG;
+            case G1A_MIN -> GroupingTypes.MIN;
+            case G1A_MAX -> GroupingTypes.MAX;
             default -> GroupingTypes.NONE;
         };
     }

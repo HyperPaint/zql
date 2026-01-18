@@ -124,7 +124,7 @@ class ExpressionExec {
 
     private static ExecEntry buildExecEntry(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> buildExecEntry(expression.getWrappedExpression());
+            case G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX, E1A_ARITHMETICAL_WRAP -> buildExecEntry(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -132,7 +132,7 @@ class ExpressionExec {
     private static ExecEntry buildExecEntry(ExpressionWrapper2 expression) {
         return switch (expression.getType()) {
             case ALIAS -> buildExecEntry(expression.getWrappedExpression1());
-            case JSON_PATH -> (path, data) -> {
+            case E2A_JSON_PATH -> (path, data) -> {
                 final String json = String.valueOf(buildExecEntry(expression.getWrappedExpression1()).run(path, data));
                 final String jsonPath = String.valueOf(buildExecEntry(expression.getWrappedExpression2()).run(path, data));
 
@@ -144,12 +144,12 @@ class ExpressionExec {
                     return null;
                 }
             };
-            case CONCATENATION -> (path, data) -> {
+            case E2A_CONCATENATION -> (path, data) -> {
                 final String left = String.valueOf(buildExecEntry(expression.getWrappedExpression1()).run(path, data));
                 final String right = String.valueOf(buildExecEntry(expression.getWrappedExpression2()).run(path, data));
                 return left + right;
             };
-            case ARITHMETICAL_PLUS -> (path, data) -> {
+            case E2A_ARITHMETICAL_PLUS -> (path, data) -> {
                 final float left;
                 final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
 
@@ -186,7 +186,7 @@ class ExpressionExec {
 
                 return left + right;
             };
-            case ARITHMETICAL_MINUS -> (path, data) -> {
+            case E2A_ARITHMETICAL_MINUS -> (path, data) -> {
                 final float left;
                 final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
 
@@ -223,7 +223,7 @@ class ExpressionExec {
 
                 return left - right;
             };
-            case ARITHMETICAL_MULTIPLY -> (path, data) -> {
+            case E2A_ARITHMETICAL_MULTIPLY -> (path, data) -> {
                 final float left;
                 final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
 
@@ -260,7 +260,7 @@ class ExpressionExec {
 
                 return left * right;
             };
-            case ARITHMETICAL_DIV -> (path, data) -> {
+            case E2A_ARITHMETICAL_DIVIDE -> (path, data) -> {
                 final float left;
                 final Object leftObject = buildExecEntry(expression.getWrappedExpression1()).run(path, data);
 
@@ -307,7 +307,7 @@ class ExpressionExec {
 
     private static ExecEntry buildExecEntry(ExpressionWrapper3 expression) {
         return switch (expression.getType()) {
-            case SUBSTRING -> (path, data) -> {
+            case E3A_SUBSTRING -> (path, data) -> {
                 final String first = String.valueOf(buildExecEntry(expression.getWrappedExpression1()).run(path, data));
 
                 final int from;
@@ -380,7 +380,7 @@ class ExpressionExec {
 
     private static ExecRow buildExecRow(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case COUNT, SUM, AVG, MIN, MAX, ARITHMETICAL_BRACKETS -> buildExecRow(expression.getWrappedExpression());
+            case G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX, E1A_ARITHMETICAL_WRAP -> buildExecRow(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -388,7 +388,7 @@ class ExpressionExec {
     private static ExecRow buildExecRow(ExpressionWrapper2 expression) {
         return switch (expression.getType()) {
             case ALIAS -> buildExecRow(expression.getWrappedExpression1());
-            case JSON_PATH -> (row, columnsNameIndex) -> {
+            case E2A_JSON_PATH -> (row, columnsNameIndex) -> {
                 final String json = String.valueOf(buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex));
                 final String jsonPath = String.valueOf(buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex));
 
@@ -400,12 +400,12 @@ class ExpressionExec {
                     return null;
                 }
             };
-            case CONCATENATION -> (row, columnsNameIndex) -> {
+            case E2A_CONCATENATION -> (row, columnsNameIndex) -> {
                 final String left = String.valueOf(buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex));
                 final String right = String.valueOf(buildExecRow(expression.getWrappedExpression2()).run(row, columnsNameIndex));
                 return left + right;
             };
-            case ARITHMETICAL_PLUS -> (row, columnsNameIndex) -> {
+            case E2A_ARITHMETICAL_PLUS -> (row, columnsNameIndex) -> {
                 final float left;
                 final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
 
@@ -442,7 +442,7 @@ class ExpressionExec {
 
                 return left + right;
             };
-            case ARITHMETICAL_MINUS -> (row, columnsNameIndex) -> {
+            case E2A_ARITHMETICAL_MINUS -> (row, columnsNameIndex) -> {
                 final float left;
                 final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
 
@@ -479,7 +479,7 @@ class ExpressionExec {
 
                 return left - right;
             };
-            case ARITHMETICAL_MULTIPLY -> (row, columnsNameIndex) -> {
+            case E2A_ARITHMETICAL_MULTIPLY -> (row, columnsNameIndex) -> {
                 final float left;
                 final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
 
@@ -516,7 +516,7 @@ class ExpressionExec {
 
                 return left * right;
             };
-            case ARITHMETICAL_DIV -> (row, columnsNameIndex) -> {
+            case E2A_ARITHMETICAL_DIVIDE -> (row, columnsNameIndex) -> {
                 final float left;
                 final Object leftObject = buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex);
 
@@ -563,7 +563,7 @@ class ExpressionExec {
 
     private static ExecRow buildExecRow(ExpressionWrapper3 expression) {
         return switch (expression.getType()) {
-            case SUBSTRING -> (row, columnsNameIndex) -> {
+            case E3A_SUBSTRING -> (row, columnsNameIndex) -> {
                 final String first = String.valueOf(buildExecRow(expression.getWrappedExpression1()).run(row, columnsNameIndex));
 
                 final int from;

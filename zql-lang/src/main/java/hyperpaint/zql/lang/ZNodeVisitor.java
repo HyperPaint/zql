@@ -14,7 +14,7 @@ class ZNodeVisitor extends ZQLBaseVisitor<ZNode> {
     static final ZNodeVisitor INSTANCE = new ZNodeVisitor();
 
     @Override
-    public ZNode visitZnodesComma(ZQLParser.ZnodesCommaContext ctx) {
+    public ZNode visitZNodesComma(ZQLParser.ZNodesCommaContext ctx) {
         final ZNode left = visit(ctx.getChild(0));
         final ZNode right = visit(ctx.getChild(2));
 
@@ -40,7 +40,7 @@ class ZNodeVisitor extends ZQLBaseVisitor<ZNode> {
     }
 
     @Override
-    public ZNode visitZnodesBase(ZQLParser.ZnodesBaseContext ctx) {
+    public ZNode visitZNodesBase(ZQLParser.ZNodesBaseContext ctx) {
         return visit(ctx.znode());
     }
 

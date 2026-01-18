@@ -12,26 +12,27 @@ import lombok.ToString;
 public abstract class Expression extends Component {
     public enum Type {
         COLLECTION,
-
-        COUNT,
-        SUM,
-        AVG,
-        MIN,
-        MAX,
-
         ALIAS,
-        JSON_PATH,
-        CONCATENATION,
-        SUBSTRING,
-        ARITHMETICAL_PLUS,
-        ARITHMETICAL_MINUS,
-        ARITHMETICAL_MULTIPLY,
-        ARITHMETICAL_DIV,
-        ARITHMETICAL_BRACKETS,
 
-        NUMBER,
-        STRING,
-        IDENTIFIER,
+        E3A_SUBSTRING,
+
+        E2A_JSON_PATH,
+        E2A_CONCATENATION,
+        E2A_ARITHMETICAL_PLUS,
+        E2A_ARITHMETICAL_MINUS,
+        E2A_ARITHMETICAL_MULTIPLY,
+        E2A_ARITHMETICAL_DIVIDE,
+        E1A_ARITHMETICAL_WRAP,
+
+        G1A_COUNT,
+        G1A_SUM,
+        G1A_AVG,
+        G1A_MIN,
+        G1A_MAX,
+
+        P_NUMBER,
+        P_STRING,
+        P_IDENTIFIER,
 
         ORDER_BY_ASC,
         ORDER_BY_DESC

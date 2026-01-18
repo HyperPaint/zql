@@ -118,68 +118,68 @@ class ExpressionVisitor extends ZQLBaseVisitor<Expression> {
     }
 
     @Override
-    public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.JSON_PATH, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
-    }
-
-    @Override
-    public Expression visitExpressionConcat(ZQLParser.ExpressionConcatContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.CONCATENATION, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
-    }
-
-    @Override
     public Expression visitExpressionSubstring(ZQLParser.ExpressionSubstringContext ctx) {
-        return new ExpressionWrapper3(Expression.Type.SUBSTRING, visit(ctx.getChild(2)), visit(ctx.getChild(4)), visit(ctx.getChild(6)));
+        return new ExpressionWrapper3(Expression.Type.E3A_SUBSTRING, visit(ctx.getChild(2)), visit(ctx.getChild(4)), visit(ctx.getChild(6)));
     }
 
     @Override
-    public Expression visitExpressionCount(ZQLParser.ExpressionCountContext ctx) {
-        return new ExpressionWrapper(Expression.Type.COUNT, visit(ctx.getChild(2)));
+    public Expression visitExpressionJsonPath(ZQLParser.ExpressionJsonPathContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.E2A_JSON_PATH, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
     }
 
     @Override
-    public Expression visitExpressionSum(ZQLParser.ExpressionSumContext ctx) {
-        return new ExpressionWrapper(Expression.Type.SUM, visit(ctx.getChild(2)));
-    }
-
-    @Override
-    public Expression visitExpressionAvg(ZQLParser.ExpressionAvgContext ctx) {
-        return new ExpressionWrapper(Expression.Type.AVG, visit(ctx.getChild(2)));
-    }
-
-    @Override
-    public Expression visitExpressionMin(ZQLParser.ExpressionMinContext ctx) {
-        return new ExpressionWrapper(Expression.Type.MIN, visit(ctx.getChild(2)));
-    }
-
-    @Override
-    public Expression visitExpressionMax(ZQLParser.ExpressionMaxContext ctx) {
-        return new ExpressionWrapper(Expression.Type.MAX, visit(ctx.getChild(2)));
+    public Expression visitExpressionConcatenation(ZQLParser.ExpressionConcatenationContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.E2A_CONCATENATION, visit(ctx.getChild(2)), visit(ctx.getChild(4)));
     }
 
     @Override
     public Expression visitExpressionArithmeticalPlus(ZQLParser.ExpressionArithmeticalPlusContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_PLUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+        return new ExpressionWrapper2(Expression.Type.E2A_ARITHMETICAL_PLUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionArithmeticalMinus(ZQLParser.ExpressionArithmeticalMinusContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_MINUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+        return new ExpressionWrapper2(Expression.Type.E2A_ARITHMETICAL_MINUS, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionArithmeticalMultiply(ZQLParser.ExpressionArithmeticalMultiplyContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_MULTIPLY, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+        return new ExpressionWrapper2(Expression.Type.E2A_ARITHMETICAL_MULTIPLY, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
     }
 
     @Override
-    public Expression visitExpressionArithmeticalDiv(ZQLParser.ExpressionArithmeticalDivContext ctx) {
-        return new ExpressionWrapper2(Expression.Type.ARITHMETICAL_DIV, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
+    public Expression visitExpressionArithmeticalDivide(ZQLParser.ExpressionArithmeticalDivideContext ctx) {
+        return new ExpressionWrapper2(Expression.Type.E2A_ARITHMETICAL_DIVIDE, visit(ctx.getChild(0)), visit(ctx.getChild(2)));
     }
 
     @Override
     public Expression visitExpressionArithmeticalBrackets(ZQLParser.ExpressionArithmeticalBracketsContext ctx) {
-        return new ExpressionWrapper(Expression.Type.ARITHMETICAL_BRACKETS, visit(ctx.getChild(1)));
+        return new ExpressionWrapper(Expression.Type.E1A_ARITHMETICAL_WRAP, visit(ctx.getChild(1)));
+    }
+
+    @Override
+    public Expression visitExpressionCount(ZQLParser.ExpressionCountContext ctx) {
+        return new ExpressionWrapper(Expression.Type.G1A_COUNT, visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionSum(ZQLParser.ExpressionSumContext ctx) {
+        return new ExpressionWrapper(Expression.Type.G1A_SUM, visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionAvg(ZQLParser.ExpressionAvgContext ctx) {
+        return new ExpressionWrapper(Expression.Type.G1A_AVG, visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionMin(ZQLParser.ExpressionMinContext ctx) {
+        return new ExpressionWrapper(Expression.Type.G1A_MIN, visit(ctx.getChild(2)));
+    }
+
+    @Override
+    public Expression visitExpressionMax(ZQLParser.ExpressionMaxContext ctx) {
+        return new ExpressionWrapper(Expression.Type.G1A_MAX, visit(ctx.getChild(2)));
     }
 
     @Override
