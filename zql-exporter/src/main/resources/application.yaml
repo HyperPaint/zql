@@ -23,8 +23,6 @@ zql-exporter:
         enabled: true
       metrics:
         enabled: true
-      queries-plus-metrics:
-        enabled: true
     metrics:
       - query: "select path, data, 1 from /;"
         name: root
@@ -34,6 +32,8 @@ zql-exporter:
         name: ls_two
       - query: "select path, data, 1 from ls/ls/ls/;"
         name: ls_three
+      - query: "select path, data/data as data_div_data from ls/ls/;"
+        name: test
 
 logging:
   level:
