@@ -9,10 +9,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import zql_exporter.config.ZqlZkConfig;
 
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.KeyStore;
 
 @Configuration
 @AllArgsConstructor
@@ -45,29 +50,31 @@ public class AppConfig {
     }
 
     @Bean
-    @Scope("prototype")
-    public Socket zookeeperSocket(ZqlZkConfig zqlZkConfig) throws IOException {
-        final Socket socket;
-
+    public SocketFactory socketFactory(ZqlZkConfig zqlZkConfig) throws Exception {
         if (zqlZkConfig.isSslEnabled()) {
-//            props.put("keyStore", System.getProperty("javax.net.ssl.keyStore", ""));
-//            props.put("keyStoreType", System.getProperty("javax.net.ssl.keyStoreType", KeyStore.getDefaultType()));
-//            props.put("keyStoreProvider", System.getProperty("javax.net.ssl.keyStoreProvider", ""));
-//            props.put("keyStorePasswd", System.getProperty("javax.net.ssl.keyStorePassword", ""));
-            System.setProperty("javax.net.ssl.keyStore", zqlZkConfig.getSslKeyStoreLocation());
-            System.setProperty("javax.net.ssl.keyStorePassword", zqlZkConfig.getSslKeyStorePassword());
+            final var keystore = KeyStore.getInstance(new File(zqlZkConfig.getSslKeyStoreLocation()), zqlZkConfig.getSslKeyStorePassword().toCharArray());
 
-//            String storePropName = System.getProperty("javax.net.ssl.trustStore", TrustStoreManager.TrustStoreDescriptor.jsseDefaultStore);
-//            String storePropType = System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
-//            String storePropProvider = System.getProperty("javax.net.ssl.trustStoreProvider", "");
-//            String storePropPassword = System.getProperty("javax.net.ssl.trustStorePassword", "");
-            System.setProperty("javax.net.ssl.trustStore", zqlZkConfig.getSslTrustStoreLocation());
-            System.setProperty("javax.net.ssl.trustStorePassword", zqlZkConfig.getSslTrustStorePassword());
+            final var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keystore, zqlZkConfig.getSslKeyStorePassword().toCharArray());
 
-            socket = SSLSocketFactory.getDefault().createSocket();
+            final var truststore = KeyStore.getInstance(new File(zqlZkConfig.getSslTrustStoreLocation()), zqlZkConfig.getSslTrustStorePassword().toCharArray());
+
+            final var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(truststore);
+
+            final var context = SSLContext.getInstance("TLS");
+            context.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+            return context.getSocketFactory();
         } else {
-            socket = new Socket();
+            return SocketFactory.getDefault();
         }
+    }
+
+    @Bean
+    @Scope("prototype")
+    public Socket socket(ZqlZkConfig zqlZkConfig, SocketFactory socketFactory) throws IOException {
+        final Socket socket = socketFactory.createSocket();
 
         socket.setSoTimeout(zqlZkConfig.getSessionTimeout());
         socket.connect(new InetSocketAddress(zqlZkConfig.getHost(), zqlZkConfig.getPort()), zqlZkConfig.getConnectionTimeout());

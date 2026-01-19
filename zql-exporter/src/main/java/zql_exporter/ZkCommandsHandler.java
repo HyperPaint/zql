@@ -50,10 +50,10 @@ public class ZkCommandsHandler {
         }
     }
 
-    private final ObjectFactory<Socket> zookeeperSocketFactory;
+    private final ObjectFactory<Socket> socketFactory;
 
     public String exec(ZKCommands command) throws IOException {
-        final Socket socket = zookeeperSocketFactory.getObject();
+        final Socket socket = socketFactory.getObject();
 
         try (socket) {
             socket.getOutputStream().write(command.getBytes());
