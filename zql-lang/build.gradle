@@ -1,0 +1,42 @@
+plugins {
+    id "java"
+    id "java-library"
+}
+
+group = "hyperpaint"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Lombok
+    compileOnly "org.projectlombok:lombok:${lombok_version}"
+    testCompileOnly "org.projectlombok:lombok:${lombok_version}"
+    annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
+
+    // ANTLR
+    api "org.antlr:antlr4-runtime:${antlr_version}"
+
+    // Test
+    testImplementation "org.junit.jupiter:junit-jupiter:${junit_jupiter_version}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${junit_platform_version}"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register("antlr", Exec) {
+    workingDir project.projectDir
+    commandLine 'java', '-jar', 'antlr/antlr-4.13.2-complete.jar', '-no-listener', '-visitor', 'src/main/java/hyperpaint/zql/lang/antlr4/ZQL.g4'
+}
+
+tasks.classes.dependsOn("antlr")

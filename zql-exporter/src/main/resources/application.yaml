@@ -1,0 +1,42 @@
+zql-exporter:
+  zookeeper:
+    host: 127.0.0.1
+    port: 2181
+    timeout:
+      session: 10000
+      connection: 10000
+    ssl:
+      enabled: false
+      # Не обязательны при enabled: false
+      key-store-location: keystore.jks
+      key-store-password: password
+      trust-store-location: truststore.jks
+      trust-store-password: password
+      hostname-verification: true
+  exporter:
+    endpoints:
+      query-as-table:
+        enabled: true
+      query-as-metrics:
+        enabled: true
+      queries:
+        enabled: true
+      metrics:
+        enabled: true
+    metrics:
+      - query: "select path, data, 1 from /;"
+        name: root
+      - query: "select path, data, 1 from ls/;"
+        name: ls_one
+      - query: "select path, data, 1 from ls/ls/;"
+        name: ls_two
+      - query: "select path, data, 1 from ls/ls/ls/;"
+        name: ls_three
+      - query: "select path, data/data as data_div_data from ls/ls/;"
+        name: test
+
+logging:
+  level:
+    root: info
+    hyperpaint.zql: debug
+    org.apache.zookeeper: warn
