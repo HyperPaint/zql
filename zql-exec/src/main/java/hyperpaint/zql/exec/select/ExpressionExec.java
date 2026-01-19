@@ -97,14 +97,12 @@ class ExpressionExec {
             return switch (identifier) {
                 case "path" -> path;
                 case "data" -> {
-                    if (data == null) yield null;
+                    if (data == null) {
+                        yield null;
+                    }
 
                     try {
-                        if (data.contains(".") || data.contains(",")) {
-                            yield Float.parseFloat(data);
-                        } else {
-                            yield Integer.parseInt(data);
-                        }
+                        yield Float.parseFloat(data);
                     } catch (NumberFormatException ignored) {
                         yield data;
                     }
@@ -124,7 +122,7 @@ class ExpressionExec {
 
     private static ExecEntry buildExecEntry(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX, E1A_ARITHMETICAL_WRAP -> buildExecEntry(expression.getWrappedExpression());
+            case E1A_ARITHMETICAL_WRAP, G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX -> buildExecEntry(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
@@ -380,7 +378,7 @@ class ExpressionExec {
 
     private static ExecRow buildExecRow(ExpressionWrapper expression) {
         return switch (expression.getType()) {
-            case G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX, E1A_ARITHMETICAL_WRAP -> buildExecRow(expression.getWrappedExpression());
+            case E1A_ARITHMETICAL_WRAP, G1A_COUNT, G1A_SUM, G1A_AVG, G1A_MIN, G1A_MAX -> buildExecRow(expression.getWrappedExpression());
             default -> throw new IllegalStateException("Unexpected value: " + expression.getType());
         };
     }
