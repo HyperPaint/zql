@@ -1,4 +1,4 @@
-package zql_exporter;
+package hyperpaint.zql_exporter;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service
 class MetricsHandler {
-    private final ZkCommandsHandler zkCommandsHandler;
+    private final ZooKeeper4LetterCommandsHandler zooKeeper4LetterCommandsHandler;
 
     public String metrics() throws Exception {
-        return zkCommandsHandler.exec(ZkCommandsHandler.ZKCommands.MNTR)
+        return zooKeeper4LetterCommandsHandler.exec(ZooKeeper4LetterCommandsHandler.Commands.MNTR)
                 .lines()
                 .map(s -> {
                     final int delimiterIndex = s.indexOf("\t");

@@ -1,4 +1,4 @@
-package zql_exporter;
+package hyperpaint.zql_exporter;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,9 +13,9 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 @AllArgsConstructor
 @Service
-public class ZkCommandsHandler {
+public class ZooKeeper4LetterCommandsHandler {
     /// <a href="https://zookeeper.apache.org/doc/r3.4.8/zookeeperAdmin.html#sc_zkCommands">ZooKeeper Commands: The Four Letter Words</a>
-    public enum ZKCommands {
+    public enum Commands {
         /// New in 3.3.0: Print details about serving configuration.
         CONF("conf".getBytes(StandardCharsets.UTF_8)),
         /// New in 3.3.0: List full connection/session details for all clients connected to this server. Includes information on numbers of packets received/sent, session id, operation latencies, last operation performed, etc...
@@ -45,14 +45,14 @@ public class ZkCommandsHandler {
 
         private final @Getter byte[] bytes;
 
-        ZKCommands(byte[] bytes) {
+        Commands(byte[] bytes) {
             this.bytes = bytes;
         }
     }
 
     private final ObjectFactory<Socket> socketFactory;
 
-    public String exec(ZKCommands command) throws IOException {
+    public String exec(Commands command) throws IOException {
         final Socket socket = socketFactory.getObject();
 
         try (socket) {
@@ -64,7 +64,7 @@ public class ZkCommandsHandler {
     }
 
     public boolean isLeader() throws IOException {
-        return exec(ZKCommands.STAT)
+        return exec(Commands.STAT)
                 .toLowerCase()
                 .lines()
                 .filter(s -> s.startsWith("mode: "))

@@ -3,3 +3,5 @@ rootProject.name = "zql"
 include "zql-lang"
 include "zql-exec"
 include "zql-exporter"
+
+include "zql-agent-pem"

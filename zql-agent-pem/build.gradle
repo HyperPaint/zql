@@ -1,0 +1,45 @@
+plugins {
+    id "java"
+    id "com.gradleup.shadow" version "9.4.1"
+}
+
+group = "hyperpaint"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Byte Buddy
+    implementation "net.bytebuddy:byte-buddy:${byte_buddy_version}"
+
+    // Curator
+    implementation "io.netty:netty-handler:4+"
+
+    // Bouncy Castle
+    implementation "org.bouncycastle:bcpkix-jdk18on:${bouncy_castle_version}"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+shadowJar {
+    archiveClassifier = ""
+
+    manifest {
+        attributes(
+                "Premain-Class": "hyperpaint.zql_agent_pem.AgentPem",
+                "Can-Redefine-Classes": "true",
+                "Can-Retransform-Classes": "true"
+        )
+    }
+
+    exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
+}
+
+tasks.named("jar") {
+    enabled = false
+}

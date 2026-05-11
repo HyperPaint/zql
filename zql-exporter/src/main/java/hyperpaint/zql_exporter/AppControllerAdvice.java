@@ -1,4 +1,4 @@
-package zql_exporter;
+package hyperpaint.zql_exporter;
 
 import hyperpaint.zql.lang.ZQLException;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ public class AppControllerAdvice {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase() + " - " + e.getMessage());
     }
 
-    @ExceptionHandler
+    @ExceptionHandler(IOException.class)
     public ResponseEntity<String> handle(IOException e) {
         log.error(e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase() + " - " + e.getMessage());

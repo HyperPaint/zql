@@ -1,4 +1,4 @@
-package zql_exporter;
+package hyperpaint.zql_exporter;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import zql_exporter.config.ZqlExporterConfig;
+import hyperpaint.zql_exporter.config.ZqlConfig;
 
 @Slf4j
 @AllArgsConstructor
@@ -17,7 +17,7 @@ public class AppController {
     private final QueryHandler queryHandler;
     private final MetricsHandler metricsHandler;
 
-    private final ZqlExporterConfig zqlExporterConfig;
+    private final ZqlConfig zqlConfig;
 
     @GetMapping("/")
     public String index() {
@@ -43,7 +43,7 @@ public class AppController {
     public ResponseEntity<String> queryAsTable(
             @RequestParam String query
     ) throws Exception {
-        if (!zqlExporterConfig.isQueryAsTableEnabled()) {
+        if (!zqlConfig.isExporterQueryAsTableEnabled()) {
             return null;
         }
 
@@ -57,7 +57,7 @@ public class AppController {
             @RequestParam(required = false) String help,
             @RequestParam(required = false) String type
     ) throws Exception {
-        if (!zqlExporterConfig.isQueryAsMetricsEnabled()) {
+        if (!zqlConfig.isExporterQueryAsMetricsEnabled()) {
             return null;
         }
 
@@ -66,13 +66,13 @@ public class AppController {
 
     @GetMapping("/queries")
     public ResponseEntity<String> queries() throws Exception {
-        if (!zqlExporterConfig.isQueriesEnabled()) {
+        if (!zqlConfig.isExporterQueriesEnabled()) {
             return null;
         }
 
         final var stringBuilder = new StringBuilder();
 
-        for (var item : zqlExporterConfig.getMetrics()) {
+        for (var item : zqlConfig.getExporterMetrics()) {
             stringBuilder.append(queryHandler.handleAsMetrics(item.getQuery(), item.getHelp(), item.getType(), item.getName()));
         }
 
@@ -81,7 +81,7 @@ public class AppController {
 
     @GetMapping("/metrics")
     public ResponseEntity<String> metrics() throws Exception {
-        if (!zqlExporterConfig.isMetricsEnabled()) {
+        if (!zqlConfig.isExporterMetricsEnabled()) {
             return null;
         }
 

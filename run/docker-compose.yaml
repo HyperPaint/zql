@@ -1,0 +1,48 @@
+name: "test-zql"
+services:
+
+  zookeeper:
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "256M"
+        reservations:
+          cpus: "0.1"
+          memory: "256M"
+    image: "zookeeper:3.9.5"
+    hostname: "zookeeper.hyperpaint.local"
+    networks:
+      - "default"
+    ports:
+      - "127.0.0.1:2181:2181/tcp"
+    environment:
+      - "ZOO_STANDALONE_ENABLED=true"
+      - "ZOO_4LW_COMMANDS_WHITELIST=*"
+
+  zookeeper-secure:
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "256M"
+        reservations:
+          cpus: "0.1"
+          memory: "256M"
+    image: "zookeeper:3.9.5"
+    hostname: "zookeeper-secure.hyperpaint.local"
+    networks:
+      - "default"
+    ports:
+      - "127.0.0.1:2182:2182/tcp"
+    environment:
+      - "ZOO_STANDALONE_ENABLED=true"
+      - "ZOO_4LW_COMMANDS_WHITELIST=*"
+      - "ZOO_CFG_EXTRA=secureClientPort=2182"
+      - "JVMFLAGS=-Dzookeeper.serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory -Dzookeeper.ssl.keyStore.location=/keystore.jks -Dzookeeper.ssl.keyStore.password=changeit -Dzookeeper.ssl.trustStore.location=/truststore.jks -Dzookeeper.ssl.trustStore.password=changeit"
+    volumes:
+      - "./keystore.jks:/keystore.jks:ro"
+      - "./truststore.jks:/truststore.jks:ro"
+
+networks:
+  default:
